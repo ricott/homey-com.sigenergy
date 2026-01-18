@@ -1,4 +1,8 @@
 {
+    "0.2.3": {
+        "en": "Fixed bug in EV AC charger device",
+        "sv": "Fixat bugg i EV AC laddare enheten"
+    },
     "0.2.2": {
         "en": "Stability improvements",
         "sv": "Stabilitet förbättringar"
