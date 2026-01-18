@@ -4,7 +4,7 @@ const EVACCharger = require('../../lib/devices/evACCharger.js');
 const BaseDevice = require('../baseDevice.js');
 const enums = require('../../lib/enums.js');
 
-class EvDCChargerDevice extends BaseDevice {
+class EvACChargerDevice extends BaseDevice {
 
     async onInit() {
         await this.upgradeDevice();
@@ -89,4 +89,4 @@ class EvDCChargerDevice extends BaseDevice {
         ]);
     }
 }
-module.exports = EvDCChargerDevice;
+module.exports = EvACChargerDevice;

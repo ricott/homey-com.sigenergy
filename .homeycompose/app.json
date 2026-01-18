@@ -1,6 +1,6 @@
 {
   "id": "com.sigenergy",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
