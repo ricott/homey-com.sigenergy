@@ -99,7 +99,7 @@ class PlantDevice extends BaseDevice {
             power = power + charger.getCapabilityValue('measure_power');
         }
 
-        return power / 1000;
+        return power;
     }
 }
 module.exports = PlantDevice;

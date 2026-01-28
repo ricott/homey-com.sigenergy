@@ -1,4 +1,8 @@
 {
+    "0.2.5": {
+        "en": "Fixed bug with plant device EV Charger power calculation",
+        "sv": "Fixat bugg med plant enheten EV laddare effektberäkning"
+    },
     "0.2.4": {
         "en": "Fixed bug in EV AC charger device",
         "sv": "Fixat bugg i EV AC laddare enheten"
