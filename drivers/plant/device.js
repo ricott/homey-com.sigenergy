@@ -45,13 +45,12 @@ class PlantDevice extends BaseDevice {
     async _updatePlantProperties(message) {
 
         const evChargerPower = await this.calculateEVChargerPower();
-        const consumption = message.solarPower + message.gridPower - message.batteryPower - evChargerPower;
 
         await Promise.all([
             this._updateProperty('measure_power.grid', message.gridPower),
             this._updateProperty('measure_power.battery', message.batteryPower),
             this._updateProperty('measure_power.solar', message.solarPower),
-            this._updateProperty('measure_power.load', consumption),
+            this._updateProperty('measure_power.load', message.generalLoadPower),
             this._updateProperty('measure_power.evcharger', evChargerPower),
             this._updateProperty('measure_battery', message.batterySoc),
             this.setStoreValue('grid_status', enums.decodeGridStatus(message.gridStatus)),

@@ -1,4 +1,8 @@
 {
+    "0.2.6": {
+        "en": "Plant device: Updated to use Modbus general load power instead of manually calculating it",
+        "sv": "Plant enhet: Uppdaterad för att använda Modbus general load power istället för att manuellt beräkna det"
+    },
     "0.2.5": {
         "en": "Fixed bug with plant device EV Charger power calculation",
         "sv": "Fixat bugg med plant enheten EV laddare effektberäkning"

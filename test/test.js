@@ -15,8 +15,8 @@ socket.on('connect', function () {
     let startTime = new Date().getTime();
     Promise.all([
 
-        client100.readHoldingRegisters(30009, 1),
-        // client100.readHoldingRegisters(30284, 2),
+        client100.readHoldingRegisters(30282, 2),
+        client100.readHoldingRegisters(30284, 2),
 
 
     ]).then((results) => {
@@ -26,8 +26,8 @@ socket.on('connect', function () {
             let result = results[index];
 
             //console.log(result.response);
-            console.log(result.response._body._valuesAsBuffer.readUInt16BE(0));
-            //console.log(result.response._body._valuesAsBuffer.readUInt32BE(0));
+            // console.log(result.response._body._valuesAsBuffer.readUInt16BE(0));
+            console.log(result.response._body._valuesAsBuffer.readUInt32BE(0));
         }
 
         console.log(`Execution time: ${endTime-startTime}`);
