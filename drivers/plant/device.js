@@ -53,8 +53,11 @@ class PlantDevice extends BaseDevice {
             this._updateProperty('measure_power.load', message.generalLoadPower),
             this._updateProperty('measure_power.evcharger', evChargerPower),
             this._updateProperty('measure_battery', message.batterySoc),
-            this.setStoreValue('grid_status', enums.decodeGridStatus(message.gridStatus)),
         ]);
+
+        if (Number.isFinite(message.gridStatus)) {
+            await this.setStoreValue('grid_status', enums.decodeGridStatus(message.gridStatus));
+        }
 
         await this.sendLiveViewData();
     }

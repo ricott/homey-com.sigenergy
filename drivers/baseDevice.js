@@ -54,7 +54,10 @@ class BaseDevice extends Device {
     }
 
     async _updateProperty(key, value) {
-        // Ignore unknown capabilities
+        if (value === undefined) {
+            return;
+        }
+
         if (!this.hasCapability(key)) {
             return;
         }

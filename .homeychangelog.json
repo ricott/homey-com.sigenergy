@@ -1,4 +1,8 @@
 {
+    "0.2.7": {
+        "en": "Improved support for different firmware versions",
+        "sv": "Förbättrat stöd för olika firmware versioner"
+    },
     "0.2.6": {
         "en": "Plant device: Updated to use Modbus general load power instead of manually calculating it",
         "sv": "Plant enhet: Uppdaterad för att använda Modbus general load power istället för att manuellt beräkna det"

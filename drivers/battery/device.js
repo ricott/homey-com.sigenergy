@@ -39,16 +39,29 @@ class BatteryDevice extends BaseDevice {
     }
 
     async _handlePropertiesEvent(message) {
-        const outputType = enums.decodeInverterOutputType(message.outputType);
-        this.logMessage(`Setting output type: ${outputType}`);
         try {
-            await this.setSettings({
-                serial: String(message.serial),
-                capacity: `${message.capacity} kWh`,
-                outputType: outputType
-            });
+            const settings = {};
 
-            await this._configureOutputCapabilities(outputType);
+            if (message.serial !== undefined) {
+                settings.serial = String(message.serial);
+            }
+            if (message.capacity !== undefined) {
+                settings.capacity = `${message.capacity} kWh`;
+            }
+
+            const outputType = enums.decodeInverterOutputType(message.outputType);
+            if (outputType) {
+                this.logMessage(`Setting output type: ${outputType}`);
+                settings.outputType = outputType;
+            }
+
+            if (Object.keys(settings).length > 0) {
+                await this.setSettings(settings);
+            }
+
+            if (outputType) {
+                await this._configureOutputCapabilities(outputType);
+            }
         } catch (error) {
             this.error('Failed to update battery properties settings:', error);
         }

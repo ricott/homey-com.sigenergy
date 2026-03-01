@@ -59,18 +59,12 @@ class EnergyDevice extends BaseDevice {
 
             // Phase L1 measurements
             this._updateProperty('measure_power.L1', message.powerL1 || 0),
-            // this._updateProperty('measure_current.L1', message.currentL1 || 0),
-            // this._updateProperty('measure_voltage.L1', message.voltageL1 ? Math.round(message.voltageL1) : 0),
 
             // Phase L2 measurements
             this._updateProperty('measure_power.L2', message.powerL2 || 0),
-            // this._updateProperty('measure_current.L2', message.currentL2 || 0),
-            // this._updateProperty('measure_voltage.L2', message.voltageL2 ? Math.round(message.voltageL2) : 0),
 
             // Phase L3 measurements
             this._updateProperty('measure_power.L3', message.powerL3 || 0),
-            // this._updateProperty('measure_current.L3', message.currentL3 || 0),
-            // this._updateProperty('measure_voltage.L3', message.voltageL3 ? Math.round(message.voltageL3) : 0),
 
             // Energy meters
             this._updateProperty('meter_power.imported', message.totalImportedEnergy || 0),
@@ -87,7 +81,9 @@ class EnergyDevice extends BaseDevice {
 
         await Promise.all(propertyUpdates);
 
-        await this.updateSettingIfChanged('phaseControl', phaseControl, this.getSetting('phaseControl'));
+        if (phaseControl !== undefined) {
+            await this.updateSettingIfChanged('phaseControl', phaseControl, this.getSetting('phaseControl'));
+        }
     }
 }
 module.exports = EnergyDevice;
