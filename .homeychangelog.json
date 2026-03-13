@@ -1,4 +1,8 @@
 {
+    "0.2.8": {
+        "en": "Added support for third party inverter power in the Plant device",
+        "sv": "Lade till stöd för tredjeparts inverter effekt i Plant enheten"
+    },
     "0.2.7": {
         "en": "Improved support for different firmware versions",
         "sv": "Förbättrat stöd för olika firmware versioner"

@@ -49,7 +49,7 @@ class PlantDevice extends BaseDevice {
         await Promise.all([
             this._updateProperty('measure_power.grid', message.gridPower),
             this._updateProperty('measure_power.battery', message.batteryPower),
-            this._updateProperty('measure_power.solar', message.solarPower),
+            this._updateProperty('measure_power.solar', (message.solarPower || 0) + (message.thirdPartyInverterPower || 0)),
             this._updateProperty('measure_power.load', message.generalLoadPower),
             this._updateProperty('measure_power.evcharger', evChargerPower),
             this._updateProperty('measure_battery', message.batterySoc),
