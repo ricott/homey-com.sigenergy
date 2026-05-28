@@ -146,7 +146,7 @@ class EvDCChargerDevice extends BaseDevice {
             // Power & current
             this._updateProperty('measure_power', message.power),
             this._updateProperty('measure_current', message.current),
-            this._updateProperty('measure_current.discharge', message.dischargeCurrent || 0),
+            this._updateProperty('measure_current.discharge', message.dischargeCurrent),
             this._updateProperty('measure_voltage.vehicle', message.vehicleBatteryVoltage > 10 ? message.vehicleBatteryVoltage : 0),
             this._updateProperty('measure_battery.vehicle', message.vehicleSoc || 0),
 
@@ -155,8 +155,8 @@ class EvDCChargerDevice extends BaseDevice {
             this._updateProperty('evdc_max_discharge_power', message.maxDischargePowerLimit),
 
             // Session counters
-            this._updateProperty('meter_power.session_charged', message.sessionChargeEnergy || 0),
-            this._updateProperty('meter_power.session_discharged', message.sessionDischargeEnergy || 0),
+            this._updateProperty('meter_power.session_charged', message.sessionChargeEnergy),
+            this._updateProperty('meter_power.session_discharged', message.sessionDischargeEnergy),
 
             // Lifetime totals (system register)
             this._updateProperty('meter_power.charged', message.totalChargeEnergy),
