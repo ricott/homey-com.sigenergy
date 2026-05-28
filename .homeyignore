@@ -1,6 +1,9 @@
 # Test files
 /test/
 
+# Docs folder
+/docs/
+
 # Development files
 .gitignore
 .github/
