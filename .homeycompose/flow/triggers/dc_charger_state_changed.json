@@ -1,0 +1,36 @@
+{
+    "id": "dc_charger_state_changed",
+    "title": {
+        "en": "DC charger state changed to",
+        "sv": "DC-laddarstatus ändrades till"
+    },
+    "titleFormatted": {
+        "en": "DC charger state changed to [[state]]",
+        "sv": "DC-laddarstatus ändrades till [[state]]"
+    },
+    "args": [
+        {
+            "name": "state",
+            "type": "autocomplete",
+            "title": {
+                "en": "State",
+                "sv": "Status"
+            }
+        },
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=evdccharger"
+        }
+    ],
+    "tokens": [
+        {
+            "name": "state",
+            "type": "string",
+            "title": {
+                "en": "State",
+                "sv": "Status"
+            }
+        }
+    ]
+}

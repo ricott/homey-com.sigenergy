@@ -79,6 +79,24 @@
                     "sv": "Serienummer"
                 },
                 "value": ""
+            },
+            {
+                "id": "ratedChargingPower",
+                "type": "label",
+                "label": {
+                    "en": "Rated charging power",
+                    "sv": "Märkeffekt laddning"
+                },
+                "value": ""
+            },
+            {
+                "id": "ratedDischargingPower",
+                "type": "label",
+                "label": {
+                    "en": "Rated discharging power",
+                    "sv": "Märkeffekt urladdning"
+                },
+                "value": ""
             }
         ]
     },

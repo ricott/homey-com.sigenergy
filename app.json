@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.sigenergy",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "compatibility": ">=12.4.5",
   "sdk": 3,
   "platforms": [
@@ -69,6 +69,42 @@
   "homeyCommunityTopicId": 143965,
   "flow": {
     "triggers": [
+      {
+        "id": "dc_charger_state_changed",
+        "title": {
+          "en": "DC charger state changed to",
+          "sv": "DC-laddarstatus ändrades till"
+        },
+        "titleFormatted": {
+          "en": "DC charger state changed to [[state]]",
+          "sv": "DC-laddarstatus ändrades till [[state]]"
+        },
+        "args": [
+          {
+            "name": "state",
+            "type": "autocomplete",
+            "title": {
+              "en": "State",
+              "sv": "Status"
+            }
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=evdccharger"
+          }
+        ],
+        "tokens": [
+          {
+            "name": "state",
+            "type": "string",
+            "title": {
+              "en": "State",
+              "sv": "Status"
+            }
+          }
+        ]
+      },
       {
         "id": "firmware_changed",
         "title": {
@@ -149,6 +185,64 @@
             "type": "device",
             "name": "device",
             "filter": "driver_id=energy"
+          }
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "id": "set_max_charge_power",
+        "title": {
+          "en": "Set max charging power",
+          "sv": "Sätt max laddeffekt"
+        },
+        "titleFormatted": {
+          "en": "Set max charging power to [[power]] kW",
+          "sv": "Sätt max laddeffekt till [[power]] kW"
+        },
+        "args": [
+          {
+            "name": "power",
+            "type": "number",
+            "min": 0,
+            "step": 0.5,
+            "title": {
+              "en": "Power (kW)",
+              "sv": "Effekt (kW)"
+            }
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=evdccharger"
+          }
+        ]
+      },
+      {
+        "id": "set_max_discharge_power",
+        "title": {
+          "en": "Set max discharging power",
+          "sv": "Sätt max urladdeffekt"
+        },
+        "titleFormatted": {
+          "en": "Set max discharging power to [[power]] kW",
+          "sv": "Sätt max urladdeffekt till [[power]] kW"
+        },
+        "args": [
+          {
+            "name": "power",
+            "type": "number",
+            "min": 0,
+            "step": 0.5,
+            "title": {
+              "en": "Power (kW)",
+              "sv": "Effekt (kW)"
+            }
+          },
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=evdccharger"
           }
         ]
       }
@@ -755,14 +849,44 @@
       "capabilities": [
         "evcharger_charging",
         "evcharger_charging_state",
+        "evdc_running_state",
         "measure_power",
         "measure_current",
+        "measure_current.discharge",
         "measure_voltage.vehicle",
         "measure_battery.vehicle",
+        "evdc_max_charge_power",
+        "evdc_max_discharge_power",
+        "meter_power.session_charged",
+        "meter_power.session_discharged",
         "meter_power.charged",
         "meter_power.discharged"
       ],
       "capabilitiesOptions": {
+        "measure_current": {
+          "title": {
+            "en": "Charging current",
+            "sv": "Laddström"
+          }
+        },
+        "measure_current.discharge": {
+          "title": {
+            "en": "Discharging current",
+            "sv": "Urladdningsström"
+          }
+        },
+        "meter_power.session_charged": {
+          "title": {
+            "en": "Session charged energy",
+            "sv": "Sessionsladdad energi"
+          }
+        },
+        "meter_power.session_discharged": {
+          "title": {
+            "en": "Session discharged energy",
+            "sv": "Sessionsurladdad energi"
+          }
+        },
         "meter_power.charged": {
           "title": {
             "en": "Charged energy",
@@ -884,6 +1008,24 @@
               "label": {
                 "en": "Serial",
                 "sv": "Serienummer"
+              },
+              "value": ""
+            },
+            {
+              "id": "ratedChargingPower",
+              "type": "label",
+              "label": {
+                "en": "Rated charging power",
+                "sv": "Märkeffekt laddning"
+              },
+              "value": ""
+            },
+            {
+              "id": "ratedDischargingPower",
+              "type": "label",
+              "label": {
+                "en": "Rated discharging power",
+                "sv": "Märkeffekt urladdning"
               },
               "value": ""
             }
@@ -1291,6 +1433,49 @@
     }
   },
   "capabilities": {
+    "evdc_max_charge_power": {
+      "type": "number",
+      "title": {
+        "en": "Max charging power",
+        "sv": "Max laddeffekt"
+      },
+      "units": {
+        "en": "kW",
+        "sv": "kW"
+      },
+      "decimals": 1,
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "icon": "/assets/input.svg"
+    },
+    "evdc_max_discharge_power": {
+      "type": "number",
+      "title": {
+        "en": "Max discharging power",
+        "sv": "Max urladdeffekt"
+      },
+      "units": {
+        "en": "kW",
+        "sv": "kW"
+      },
+      "decimals": 1,
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "icon": "/assets/input.svg"
+    },
+    "evdc_running_state": {
+      "type": "string",
+      "title": {
+        "en": "DC charger state",
+        "sv": "DC-laddarstatus"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": "sensor",
+      "icon": "/assets/input.svg"
+    },
     "firmware": {
       "type": "string",
       "title": {

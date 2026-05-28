@@ -1,0 +1,28 @@
+{
+    "id": "set_max_discharge_power",
+    "title": {
+        "en": "Set max discharging power",
+        "sv": "Sätt max urladdeffekt"
+    },
+    "titleFormatted": {
+        "en": "Set max discharging power to [[power]] kW",
+        "sv": "Sätt max urladdeffekt till [[power]] kW"
+    },
+    "args": [
+        {
+            "name": "power",
+            "type": "number",
+            "min": 0,
+            "step": 0.5,
+            "title": {
+                "en": "Power (kW)",
+                "sv": "Effekt (kW)"
+            }
+        },
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=evdccharger"
+        }
+    ]
+}

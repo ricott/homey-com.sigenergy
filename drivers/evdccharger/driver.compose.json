@@ -26,14 +26,44 @@
     "capabilities": [
         "evcharger_charging",
         "evcharger_charging_state",
+        "evdc_running_state",
         "measure_power",
         "measure_current",
+        "measure_current.discharge",
         "measure_voltage.vehicle",
         "measure_battery.vehicle",
+        "evdc_max_charge_power",
+        "evdc_max_discharge_power",
+        "meter_power.session_charged",
+        "meter_power.session_discharged",
         "meter_power.charged",
         "meter_power.discharged"
     ],
     "capabilitiesOptions": {
+        "measure_current": {
+            "title": {
+                "en": "Charging current",
+                "sv": "Laddström"
+            }
+        },
+        "measure_current.discharge": {
+            "title": {
+                "en": "Discharging current",
+                "sv": "Urladdningsström"
+            }
+        },
+        "meter_power.session_charged": {
+            "title": {
+                "en": "Session charged energy",
+                "sv": "Sessionsladdad energi"
+            }
+        },
+        "meter_power.session_discharged": {
+            "title": {
+                "en": "Session discharged energy",
+                "sv": "Sessionsurladdad energi"
+            }
+        },
         "meter_power.charged": {
             "title": {
                 "en": "Charged energy",

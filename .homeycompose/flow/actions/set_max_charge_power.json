@@ -1,0 +1,28 @@
+{
+    "id": "set_max_charge_power",
+    "title": {
+        "en": "Set max charging power",
+        "sv": "Sätt max laddeffekt"
+    },
+    "titleFormatted": {
+        "en": "Set max charging power to [[power]] kW",
+        "sv": "Sätt max laddeffekt till [[power]] kW"
+    },
+    "args": [
+        {
+            "name": "power",
+            "type": "number",
+            "min": 0,
+            "step": 0.5,
+            "title": {
+                "en": "Power (kW)",
+                "sv": "Effekt (kW)"
+            }
+        },
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=evdccharger"
+        }
+    ]
+}

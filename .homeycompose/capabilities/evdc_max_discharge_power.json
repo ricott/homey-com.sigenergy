@@ -1,0 +1,16 @@
+{
+  "type": "number",
+  "title": {
+    "en": "Max discharging power",
+    "sv": "Max urladdeffekt"
+  },
+  "units": {
+    "en": "kW",
+    "sv": "kW"
+  },
+  "decimals": 1,
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "icon": "/assets/input.svg"
+}

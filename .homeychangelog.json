@@ -1,4 +1,8 @@
 {
+    "0.2.9": {
+        "en": "EV DC charger: Added detailed running state, session counters, discharge current, and read-only max charging/discharging power. Added flow trigger for state changes and flow actions to set max charging and discharging power.",
+        "sv": "EV DC laddare: Lade till detaljerad status, sessionsmätare, urladdningsström samt max ladd-/urladdeffekt. Lade till flow-trigger för statusändring och flow-actions för att sätta max ladd- och urladdeffekt."
+    },
     "0.2.8": {
         "en": "Added support for third party inverter power in the Plant device",
         "sv": "Lade till stöd för tredjeparts inverter effekt i Plant enheten"
