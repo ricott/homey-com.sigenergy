@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" x="0px" y="0px" viewBox="0 0 700 700" xmlns="http://www.w3.org/2000/svg">
+  <!-- Top horizontal "ceiling" bar representing the max limit -->
+  <rect x="120" y="130" width="460" height="55" rx="20" ry="20"/>
+  <!-- Downward-pointing lightning bolt (power flowing in / charging) -->
+  <path d="M395 235 L235 460 L325 460 L295 580 L455 355 L365 355 Z"/>
+</svg>

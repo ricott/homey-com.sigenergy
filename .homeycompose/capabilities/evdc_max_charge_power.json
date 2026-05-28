@@ -12,5 +12,5 @@
   "getable": true,
   "setable": false,
   "uiComponent": "sensor",
-  "icon": "/assets/input.svg"
+  "icon": "/assets/max_charge_power.svg"
 }

@@ -1447,7 +1447,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
-      "icon": "/assets/input.svg"
+      "icon": "/assets/max_charge_power.svg"
     },
     "evdc_max_discharge_power": {
       "type": "number",
@@ -1463,7 +1463,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
-      "icon": "/assets/input.svg"
+      "icon": "/assets/max_discharge_power.svg"
     },
     "evdc_running_state": {
       "type": "string",
@@ -1474,7 +1474,7 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
-      "icon": "/assets/input.svg"
+      "icon": "/assets/dc_charger_state.svg"
     },
     "firmware": {
       "type": "string",

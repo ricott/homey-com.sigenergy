@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" x="0px" y="0px" viewBox="0 0 700 700" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bottom horizontal "floor" bar representing the max discharge limit -->
+  <rect x="120" y="515" width="460" height="55" rx="20" ry="20"/>
+  <!-- Upward-pointing lightning bolt (power flowing out / discharging) -->
+  <path d="M305 465 L465 240 L375 240 L405 120 L245 345 L335 345 Z"/>
+</svg>
