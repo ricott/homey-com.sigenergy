@@ -1,4 +1,8 @@
 {
+    "0.3.1": {
+        "en": "Moved phase voltage and current (L1/L2/L3) measurements from the Battery device to the Inverter device, where they belong.",
+        "sv": "Flyttade fasspänning och fasström (L1/L2/L3) från Batteri-enheten till Växelriktare-enheten, där de hör hemma."
+    },
     "0.3.0": {
         "en": "EV DC charger: Added detailed running state, session counters, discharge current, and read-only max charging/discharging power. Added flow trigger for state changes and flow actions to set max charging and discharging power.",
         "sv": "EV DC laddare: Lade till detaljerad status, sessionsmätare, urladdningsström samt max ladd-/urladdeffekt. Lade till flow-trigger för statusändring och flow-actions för att sätta max ladd- och urladdeffekt."

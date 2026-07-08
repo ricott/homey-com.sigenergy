@@ -97,15 +97,6 @@
                     "sv": "Kapacitet"
                 },
                 "value": ""
-            },
-            {
-                "id": "outputType",
-                "type": "label",
-                "label": {
-                    "en": "Output type",
-                    "sv": "Utgångstyp"
-                },
-                "value": ""
             }
         ]
     },

@@ -2,6 +2,7 @@
 
 const Inverter = require('../../lib/devices/inverter.js');
 const BaseDevice = require('../baseDevice.js');
+const enums = require('../../lib/enums.js');
 
 class InverterDevice extends BaseDevice {
 
@@ -36,14 +37,45 @@ class InverterDevice extends BaseDevice {
 
     async _handlePropertiesEvent(message) {
         try {
-            await this.setSettings({
+            const settings = {
                 serial: String(message.serial),
                 mpptCount: String(message.mpptCount)
-            });
+            };
+
+            const outputType = enums.decodeInverterOutputType(message.outputType);
+            if (outputType) {
+                this.logMessage(`Setting output type: ${outputType}`);
+                settings.outputType = outputType;
+            }
+
+            await this.setSettings(settings);
 
             await this._configurePVCapabilities(message.mpptCount);
+
+            if (outputType) {
+                await this._configureOutputCapabilities(outputType);
+            }
         } catch (error) {
             this.error('Failed to update inverter properties settings:', error);
+        }
+    }
+
+    async _configureOutputCapabilities(outputType) {
+        if (outputType == 'L1/L2/L3' || outputType == 'L1/L2/L3/N') {
+            await this.addCapabilityHelper('measure_voltage.phaseA');
+            await this.addCapabilityHelper('measure_current.phaseA');
+            await this.addCapabilityHelper('measure_voltage.phaseB');
+            await this.addCapabilityHelper('measure_current.phaseB');
+            await this.addCapabilityHelper('measure_voltage.phaseC');
+            await this.addCapabilityHelper('measure_current.phaseC');
+        } else {
+            // L/N or L1/L2/N
+            await this.addCapabilityHelper('measure_voltage.phaseA');
+            await this.addCapabilityHelper('measure_current.phaseA');
+            await this.removeCapabilityHelper('measure_voltage.phaseB');
+            await this.removeCapabilityHelper('measure_current.phaseB');
+            await this.removeCapabilityHelper('measure_voltage.phaseC');
+            await this.removeCapabilityHelper('measure_current.phaseC');
         }
     }
 
@@ -98,6 +130,21 @@ class InverterDevice extends BaseDevice {
         }
         if (mpptCount >= 4) {
             updates.push(this._updateProperty('measure_voltage.pv4', message.pv4Voltage || 0));
+        }
+
+        // Phase voltage/current based on the inverter output type
+        const outputType = this.getSetting('outputType');
+        if (outputType == 'L1/L2/L3' || outputType == 'L1/L2/L3/N') {
+            updates.push(this._updateProperty('measure_voltage.phaseA', parseInt((message.phaseAVoltage || 0).toFixed(0))));
+            updates.push(this._updateProperty('measure_current.phaseA', message.phaseACurrent));
+            updates.push(this._updateProperty('measure_voltage.phaseB', parseInt((message.phaseBVoltage || 0).toFixed(0))));
+            updates.push(this._updateProperty('measure_current.phaseB', message.phaseBCurrent));
+            updates.push(this._updateProperty('measure_voltage.phaseC', parseInt((message.phaseCVoltage || 0).toFixed(0))));
+            updates.push(this._updateProperty('measure_current.phaseC', message.phaseCCurrent));
+        } else {
+            // L/N or L1/L2/N
+            updates.push(this._updateProperty('measure_voltage.phaseA', parseInt((message.phaseAVoltage || 0).toFixed(0))));
+            updates.push(this._updateProperty('measure_current.phaseA', message.phaseACurrent));
         }
 
         await Promise.all(updates);

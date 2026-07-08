@@ -17,6 +17,15 @@ class BatteryDevice extends BaseDevice {
         await this.removeCapabilityHelper('grid_status');
         await this.addCapabilityHelper('firmware');
         await this.addCapabilityHelper('measure_temperature.pcs');
+
+        // Phase voltage/current moved to the inverter device (they are inverter
+        // registers, not battery registers). Remove them from existing devices.
+        await this.removeCapabilityHelper('measure_voltage.phaseA');
+        await this.removeCapabilityHelper('measure_current.phaseA');
+        await this.removeCapabilityHelper('measure_voltage.phaseB');
+        await this.removeCapabilityHelper('measure_current.phaseB');
+        await this.removeCapabilityHelper('measure_voltage.phaseC');
+        await this.removeCapabilityHelper('measure_current.phaseC');
     }
 
     async setupSession(host, port, modbus_unitId, refreshInterval) {
@@ -49,40 +58,11 @@ class BatteryDevice extends BaseDevice {
                 settings.capacity = `${message.capacity} kWh`;
             }
 
-            const outputType = enums.decodeInverterOutputType(message.outputType);
-            if (outputType) {
-                this.logMessage(`Setting output type: ${outputType}`);
-                settings.outputType = outputType;
-            }
-
             if (Object.keys(settings).length > 0) {
                 await this.setSettings(settings);
             }
-
-            if (outputType) {
-                await this._configureOutputCapabilities(outputType);
-            }
         } catch (error) {
             this.error('Failed to update battery properties settings:', error);
-        }
-    }
-
-    async _configureOutputCapabilities(outputType) {
-        if (outputType == 'L1/L2/L3' || outputType == 'L1/L2/L3/N') {
-            await this.addCapabilityHelper('measure_voltage.phaseA');
-            await this.addCapabilityHelper('measure_current.phaseA');
-            await this.addCapabilityHelper('measure_voltage.phaseB');
-            await this.addCapabilityHelper('measure_current.phaseB');
-            await this.addCapabilityHelper('measure_voltage.phaseC');
-            await this.addCapabilityHelper('measure_current.phaseC');
-        } else {
-            await this.addCapabilityHelper('measure_voltage.phaseA');
-            await this.addCapabilityHelper('measure_current.phaseA');
-            await this.removeCapabilityHelper('measure_voltage.phaseB');
-            await this.removeCapabilityHelper('measure_current.phaseB');
-            await this.removeCapabilityHelper('measure_voltage.phaseC');
-            await this.removeCapabilityHelper('measure_current.phaseC');
-
         }
     }
 
@@ -110,22 +90,6 @@ class BatteryDevice extends BaseDevice {
             this._updateProperty('meter_power.discharged', message.totalDischargeEnergy),
             this._updateProperty('firmware', firmware)
         ];
-
-        const outputType = this.getSetting('outputType');
-
-        if (outputType == 'L1/L2/L3' || outputType == 'L1/L2/L3/N') {
-            updates.push(this._updateProperty('measure_voltage.phaseA', parseInt((message.phaseAVoltage || 0).toFixed(0))));
-            updates.push(this._updateProperty('measure_current.phaseA', message.phaseACurrent));
-            updates.push(this._updateProperty('measure_voltage.phaseB', parseInt((message.phaseBVoltage || 0).toFixed(0))));
-            updates.push(this._updateProperty('measure_current.phaseB', message.phaseBCurrent));
-            updates.push(this._updateProperty('measure_voltage.phaseC', parseInt((message.phaseCVoltage || 0).toFixed(0))));
-            updates.push(this._updateProperty('measure_current.phaseC', message.phaseCCurrent));
-
-        } else {
-            // L/N or L1/L2/N
-            updates.push(this._updateProperty('measure_voltage.phaseA', parseInt((message.phaseAVoltage || 0).toFixed(0))));
-            updates.push(this._updateProperty('measure_current.phaseA', message.phaseACurrent));
-        }
 
         await Promise.all(updates);
 

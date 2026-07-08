@@ -24,12 +24,6 @@
         "measure_battery",
         "battery_charging_state",
         "measure_power",
-        "measure_voltage.phaseA",
-        "measure_current.phaseA",
-        "measure_voltage.phaseB",
-        "measure_current.phaseB",
-        "measure_voltage.phaseC",
-        "measure_current.phaseC",
         "measure_temperature.minCell",
         "measure_temperature.maxCell",
         "measure_temperature.pcs",
@@ -66,42 +60,6 @@
             "title": {
                 "en": "Discharged energy",
                 "sv": "Urladdad energi"
-            }
-        },
-        "measure_voltage.phaseA": {
-            "title": {
-                "en": "L1 voltage",
-                "sv": "L1 spänning"
-            }
-        },
-        "measure_current.phaseA": {
-            "title": {
-                "en": "L1 current",
-                "sv": "L1 ström"
-            }
-        },
-        "measure_voltage.phaseB": {
-            "title": {
-                "en": "L2 voltage",
-                "sv": "L2 spänning"
-            }
-        },
-        "measure_current.phaseB": {
-            "title": {
-                "en": "L2 current",
-                "sv": "L2 ström"
-            }
-        },
-        "measure_voltage.phaseC": {
-            "title": {
-                "en": "L3 voltage",
-                "sv": "L3 spänning"
-            }
-        },
-        "measure_current.phaseC": {
-            "title": {
-                "en": "L3 current",
-                "sv": "L3 ström"
             }
         }
     },
