@@ -13,7 +13,8 @@ class BaseDevice extends Device {
             this.getSettings().address,
             this.getSettings().port,
             this.getSettings().modbus_unitId,
-            this.getSettings().refreshInterval
+            this.getSettings().refreshInterval,
+            this.getSettings().timeout
         );
     }
 
@@ -23,10 +24,10 @@ class BaseDevice extends Device {
         }
     }
 
-    async initializeSession(host, port, modbus_unitId, refreshInterval) {
+    async initializeSession(host, port, modbus_unitId, refreshInterval, timeout) {
         try {
             await this.destroySession();
-            await this.setupSession(host, port, modbus_unitId, refreshInterval);
+            await this.setupSession(host, port, modbus_unitId, refreshInterval, timeout);
             // Connection successful, make sure device is marked as available
             await this.setAvailable();
             // Clear any existing retry timer on successful connection
@@ -35,9 +36,9 @@ class BaseDevice extends Device {
                 this._retryTimeout = null;
             }
         } catch (error) {
-            this.error('Failed to initialize device connection:', error);
+            this.error('Failed to initialize device connection:', utilFunctions.formatError(error));
             // Set device as unavailable with error message
-            await this.setUnavailable(error.message || 'Connection failed');
+            await this.setUnavailable(utilFunctions.formatError(error) || 'Connection failed');
 
             // Clear any existing retry timer before setting a new one
             if (this._retryTimeout) {
@@ -47,8 +48,8 @@ class BaseDevice extends Device {
             // Schedule a retry after 10 minutes
             this._retryTimeout = this.homey.setTimeout(() => {
                 this.logMessage('Retrying connection...');
-                this.initializeSession(host, port, modbus_unitId, refreshInterval)
-                    .catch(err => this.error('Retry failed:', err));
+                this.initializeSession(host, port, modbus_unitId, refreshInterval, timeout)
+                    .catch(err => this.error('Retry failed:', utilFunctions.formatError(err)));
             }, 10 * 60 * 1000); // 10 minutes
         }
     }
@@ -105,16 +106,14 @@ class BaseDevice extends Device {
     }
 
     _formatErrorMessage(error) {
+        // Keep the full stack for genuine Errors (most useful in the debug
+        // setting); for anything else (e.g. jsmodbus plain-object rejections)
+        // fall back to formatError so we never store "[object Object]".
         if (utilFunctions.isError(error)) {
             return error.stack;
         }
 
-        try {
-            return JSON.stringify(error, null, '  ');
-        } catch (stringifyError) {
-            this.log('Failed to stringify error object:', stringifyError);
-            return 'Unknown error';
-        }
+        return utilFunctions.formatError(error);
     }
 
     isCapabilityValueChanged(key, value) {
@@ -139,7 +138,7 @@ class BaseDevice extends Device {
 
     async onSettings({ oldSettings, newSettings, changedKeys }) {
         let changeConn = false;
-        let host, port, modbus_unitId, refreshInterval;
+        let host, port, modbus_unitId, refreshInterval, timeout;
         if (changedKeys.indexOf("address") > -1) {
             this.logMessage(`Address value was change to: '${newSettings.address}'`);
             host = newSettings.address;
@@ -164,13 +163,20 @@ class BaseDevice extends Device {
             changeConn = true;
         }
 
+        if (changedKeys.indexOf("timeout") > -1) {
+            this.logMessage(`Modbus timeout value was change to: '${newSettings.timeout}'`);
+            timeout = newSettings.timeout;
+            changeConn = true;
+        }
+
         if (changeConn) {
             //We need to re-initialize the GX session since setting(s) are changed
             this.initializeSession(
                 host || this.getSettings().address,
                 port || this.getSettings().port,
                 modbus_unitId || this.getSettings().modbus_unitId,
-                refreshInterval || this.getSettings().refreshInterval
+                refreshInterval || this.getSettings().refreshInterval,
+                timeout || this.getSettings().timeout
             );
         }
     }

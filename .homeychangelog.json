@@ -1,4 +1,8 @@
 {
+    "0.4.0": {
+        "en": "Added a configurable Modbus timeout setting per device, and optional anonymous error reporting to help diagnose connectivity issues across installs.",
+        "sv": "Lade till en konfigurerbar Modbus timeout-inställning per enhet, samt valfri anonym felrapportering för att lättare diagnostisera anslutningsproblem."
+    },
     "0.3.1": {
         "en": "Moved phase voltage and current (L1/L2/L3) measurements from the Battery device to the Inverter device, where they belong.",
         "sv": "Flyttade fasspänning och fasström (L1/L2/L3) från Batteri-enheten till Växelriktare-enheten, där de hör hemma."

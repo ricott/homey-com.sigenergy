@@ -1,8 +1,9 @@
 {
   "name": "com.sigenergy",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "main": "app.js",
   "dependencies": {
+    "@sentry/node": "^7.120.3",
     "enum": "^3.0.4",
     "jsmodbus": "^4.0.10"
   },
