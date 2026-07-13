@@ -30,9 +30,10 @@ Fix failures before continuing. Lint *warnings* are acceptable; *errors* are not
 Optionally run `npm run test:integration` if the device is reachable.
 
 ## Step 2 — Bump version + changelog
-The version must stay in sync across three files:
-`.homeycompose/app.json` (source of truth), `app.json` (generated), and
-`package.json`.
+Bump the version in the two tracked files: `.homeycompose/app.json` (source of
+truth) and `package.json`. `app.json` is **generated and gitignored** — it is
+regenerated from `.homeycompose/app.json` by validate/build, so never edit or
+commit it.
 
 Preferred — let the CLI handle the manifests + changelog:
 ```
@@ -40,12 +41,13 @@ homey app version <patch|minor|major|X.Y.Z> \
   --changelog.en "<ENGLISH>" \
   --changelog.sv "<SWEDISH>"
 ```
-This updates `.homeycompose/app.json`, `app.json`, and prepends the entry to
-`.homeychangelog.json`. It does **not** manage `package.json`, so set its
-`version` to the same value manually. Confirm the result with `git diff`.
+This updates `.homeycompose/app.json`, regenerates `app.json`, and prepends the
+entry to `.homeychangelog.json`. It does **not** manage `package.json`, so set
+its `version` to the same value manually. Confirm the result with `git diff`.
 
-(If editing by hand instead: bump the version in all three files and add the
-newest-first `{ "en": ..., "sv": ... }` entry to `.homeychangelog.json`.)
+(If editing by hand instead: bump the version in `.homeycompose/app.json` and
+`package.json`, and add the newest-first `{ "en": ..., "sv": ... }` entry to
+`.homeychangelog.json`.)
 
 ## Step 3 — Validate for publish
 ```
@@ -56,9 +58,10 @@ This also regenerates `app.json` from `.homeycompose/app.json`.
 
 ## Step 4 — Commit + tag
 Tag convention is **v-prefixed** (e.g. `v0.4.1`). Review `git status` first, then
-stage the release files explicitly (avoid blind `git add -A`):
+stage the release files explicitly (avoid blind `git add -A`; do NOT stage
+`app.json` — it is gitignored):
 ```
-git add .homeycompose/app.json app.json package.json .homeychangelog.json
+git add .homeycompose/app.json package.json .homeychangelog.json
 # add any remaining source files that belong to this release
 git commit -m "chore(release): v<X.Y.Z>"
 git tag v<X.Y.Z>
