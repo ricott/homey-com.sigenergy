@@ -7,7 +7,7 @@ class BaseDevice extends Device {
 
     async onInit() {
         this.api = null;
-        this.logMessage(`Victron ${this.constructor.name} device initiated`);
+        this.logMessage(`Sigenergy ${this.constructor.name} device initiated`);
 
         await this.initializeSession(
             this.getSettings().address,
@@ -28,29 +28,78 @@ class BaseDevice extends Device {
         try {
             await this.destroySession();
             await this.setupSession(host, port, modbus_unitId, refreshInterval, timeout);
-            // Connection successful, make sure device is marked as available
-            await this.setAvailable();
-            // Clear any existing retry timer on successful connection
-            if (this._retryTimeout) {
-                this.homey.clearTimeout(this._retryTimeout);
-                this._retryTimeout = null;
-            }
+            // Availability and reconnection are driven by the API's
+            // 'connectionStatus' event and its health-check backoff (lib/base.js
+            // is the single reconnect engine), so there is no retry timer here.
         } catch (error) {
+            // Reached only for unexpected setup failures (e.g. createApi); the
+            // API layer handles connection failures itself and reports them via
+            // 'connectionStatus'.
             this.error('Failed to initialize device connection:', utilFunctions.formatError(error));
-            // Set device as unavailable with error message
             await this.setUnavailable(utilFunctions.formatError(error) || 'Connection failed');
+        }
+    }
 
-            // Clear any existing retry timer before setting a new one
-            if (this._retryTimeout) {
-                this.homey.clearTimeout(this._retryTimeout);
+    /**
+     * Create the device-specific Modbus API instance. Subclasses MUST override
+     * this to return their concrete device (e.g. `new Battery(options)`), which
+     * binds the correct register set. The base class owns the rest of the
+     * session lifecycle (initialize + event wiring) so drivers don't repeat it.
+     *
+     * @param {object} options - { host, port, modbus_unitId, refreshInterval, timeout, device }
+     * @returns {object} the device API instance (a lib/base.js subclass)
+     */
+    createApi(options) {
+        throw new Error(`${this.constructor.name} must implement createApi(options)`);
+    }
+
+    async setupSession(host, port, modbus_unitId, refreshInterval, timeout) {
+        this.api = this.createApi({
+            host,
+            port,
+            modbus_unitId,
+            refreshInterval,
+            timeout,
+            device: this
+        });
+
+        // Subscribe before initialize(): the initial 'connectionStatus' is
+        // emitted synchronously during initialize(), so the listener must
+        // already be attached to catch the first connect/fail.
+        this._initializeEventListeners();
+        await this.api.initialize();
+    }
+
+    /**
+     * Wire API events to their handlers. 'readings', 'error' and
+     * 'connectionStatus' are always subscribed; 'properties' is only subscribed
+     * when the subclass implements a _handlePropertiesEvent (not every device
+     * exposes INFO registers).
+     */
+    _initializeEventListeners() {
+        if (typeof this._handlePropertiesEvent === 'function') {
+            this.api.on('properties', this._handlePropertiesEvent.bind(this));
+        }
+        this.api.on('readings', this._handleReadingsEvent.bind(this));
+        this.api.on('error', this._handleErrorEvent.bind(this));
+        this.api.on('connectionStatus', this._handleConnectionStatus.bind(this));
+    }
+
+    /**
+     * Reflect the API connection state onto the Homey device availability.
+     * This is the single place that marks the device available/unavailable.
+     */
+    async _handleConnectionStatus({ connected, error } = {}) {
+        try {
+            if (connected) {
+                await this.setAvailable();
+            } else {
+                await this.setUnavailable(
+                    error ? utilFunctions.formatError(error) : 'Connection lost'
+                );
             }
-
-            // Schedule a retry after 10 minutes
-            this._retryTimeout = this.homey.setTimeout(() => {
-                this.logMessage('Retrying connection...');
-                this.initializeSession(host, port, modbus_unitId, refreshInterval, timeout)
-                    .catch(err => this.error('Retry failed:', utilFunctions.formatError(err)));
-            }, 10 * 60 * 1000); // 10 minutes
+        } catch (e) {
+            this.error('Failed to update device availability:', utilFunctions.formatError(e));
         }
     }
 
@@ -127,12 +176,10 @@ class BaseDevice extends Device {
     }
 
     onDeleted() {
-        this.logMessage(`Victron ${this.constructor.name} device deleted`);
-        // Clear any pending retry timer
-        if (this._retryTimeout) {
-            this.homey.clearTimeout(this._retryTimeout);
+        this.logMessage(`Sigenergy ${this.constructor.name} device deleted`);
+        if (this.api) {
+            this.api.disconnect();
         }
-        this.api.disconnect();
         this.api = null;
     }
 
@@ -170,7 +217,7 @@ class BaseDevice extends Device {
         }
 
         if (changeConn) {
-            //We need to re-initialize the GX session since setting(s) are changed
+            // Re-initialize the Modbus session since connection setting(s) changed
             this.initializeSession(
                 host || this.getSettings().address,
                 port || this.getSettings().port,

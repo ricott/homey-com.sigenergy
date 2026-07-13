@@ -7,7 +7,16 @@
     "enum": "^3.0.4",
     "jsmodbus": "^4.0.10"
   },
-  "scripts": {},
+  "scripts": {
+    "test": "node --test test/unit/*.test.js",
+    "lint": "eslint .",
+    "validate": "homey app validate"
+  },
   "author": "Richard Barkestam",
-  "license": "GPL-3.0-only"
+  "license": "GPL-3.0-only",
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^17.7.0"
+  }
 }

@@ -16,23 +16,8 @@ class PlantDevice extends BaseDevice {
 
     }
 
-    async setupSession(host, port, modbus_unitId, refreshInterval, timeout) {
-        this.api = new Plant({
-            host: host,
-            port: port,
-            modbus_unitId: modbus_unitId,
-            refreshInterval: refreshInterval,
-            timeout: timeout,
-            device: this
-        });
-
-        await this.api.initialize();
-        await this._initializeEventListeners();
-    }
-
-    async _initializeEventListeners() {
-        this.api.on('readings', this._handleReadingsEvent.bind(this));
-        this.api.on('error', this._handleErrorEvent.bind(this));
+    createApi(options) {
+        return new Plant(options);
     }
 
     async _handleReadingsEvent(message) {

@@ -18,24 +18,8 @@ class EnergyDevice extends BaseDevice {
         await this.addCapabilityHelper('phase_control');
     }
 
-    async setupSession(host, port, modbus_unitId, refreshInterval, timeout) {
-        this.api = new Energy({
-            host: host,
-            port: port,
-            modbus_unitId: modbus_unitId,
-            refreshInterval: refreshInterval,
-            timeout: timeout,
-            device: this
-        });
-
-        await this.api.initialize();
-        await this._initializeEventListeners();
-    }
-
-    async _initializeEventListeners() {
-        //this.api.on('properties', this._handlePropertiesEvent.bind(this));
-        this.api.on('readings', this._handleReadingsEvent.bind(this));
-        this.api.on('error', this._handleErrorEvent.bind(this));
+    createApi(options) {
+        return new Energy(options);
     }
 
     // _handlePropertiesEvent(message) {

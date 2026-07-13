@@ -24,18 +24,8 @@ class EvDCChargerDevice extends BaseDevice {
         await this.addCapabilityHelper('meter_power.session_discharged');
     }
 
-    async setupSession(host, port, modbus_unitId, refreshInterval, timeout) {
-        this.api = new EVDCCharger({
-            host: host,
-            port: port,
-            modbus_unitId: modbus_unitId,
-            refreshInterval: refreshInterval,
-            timeout: timeout,
-            device: this
-        });
-
-        await this.api.initialize();
-        await this._initializeEventListeners();
+    createApi(options) {
+        return new EVDCCharger(options);
     }
 
     async setupCapabilityListeners() {
@@ -95,12 +85,6 @@ class EvDCChargerDevice extends BaseDevice {
             value = max;
         }
         return value;
-    }
-
-    async _initializeEventListeners() {
-        this.api.on('properties', this._handlePropertiesEvent.bind(this));
-        this.api.on('readings', this._handleReadingsEvent.bind(this));
-        this.api.on('error', this._handleErrorEvent.bind(this));
     }
 
     async _handlePropertiesEvent(message) {

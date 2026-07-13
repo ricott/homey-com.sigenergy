@@ -16,18 +16,8 @@ class EvACChargerDevice extends BaseDevice {
         this.logMessage('Upgrading existing device');
     }
 
-    async setupSession(host, port, modbus_unitId, refreshInterval, timeout) {
-        this.api = new EVACCharger({
-            host: host,
-            port: port,
-            modbus_unitId: modbus_unitId,
-            refreshInterval: refreshInterval,
-            timeout: timeout,
-            device: this
-        });
-
-        await this.api.initialize();
-        await this._initializeEventListeners();
+    createApi(options) {
+        return new EVACCharger(options);
     }
 
     async setupCapabilityListeners() {
@@ -49,12 +39,6 @@ class EvACChargerDevice extends BaseDevice {
                     });
             }
         });
-    }
-
-    async _initializeEventListeners() {
-        //this.api.on('properties', this._handlePropertiesEvent.bind(this));
-        this.api.on('readings', this._handleReadingsEvent.bind(this));
-        this.api.on('error', this._handleErrorEvent.bind(this));
     }
 
     // async _handlePropertiesEvent(message) {
