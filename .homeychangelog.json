@@ -1,4 +1,8 @@
 {
+    "0.4.1": {
+        "en": "Performance and reliability improvements: contiguous Modbus registers are now read in a single request for fewer round-trips per poll, with more robust reconnection, device availability handling, and error recovery.",
+        "sv": "Prestanda- och tillförlitlighetsförbättringar: angränsande Modbus-register läses nu i en enda förfrågan för färre anrop per avläsning, med mer robust återanslutning, statushantering och felhantering."
+    },
     "0.4.0": {
         "en": "Added a configurable Modbus timeout setting per device, and optional anonymous error reporting to help diagnose connectivity issues across installs.",
         "sv": "Lade till en konfigurerbar Modbus timeout-inställning per enhet, samt valfri anonym felrapportering för att lättare diagnostisera anslutningsproblem."

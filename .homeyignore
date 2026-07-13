@@ -7,3 +7,4 @@
 # Development files
 .gitignore
 .github/
+eslint.config.js
