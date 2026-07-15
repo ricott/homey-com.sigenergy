@@ -3,10 +3,28 @@
 const { Device } = require('homey');
 const utilFunctions = require('../lib/util.js');
 
+const DEFAULT_REFRESH_INTERVAL_SECONDS = 10;
+const DEFAULT_REQUEST_TIMEOUT_SECONDS = 5;
+const MIN_DATA_STALE_THRESHOLD_MS = 30_000;
+const MIN_WATCHDOG_INTERVAL_MS = 5_000;
+const MAX_WATCHDOG_INTERVAL_MS = 30_000;
+const EXPECTED_REQUESTS_PER_SWEEP = 12;
+
 class BaseDevice extends Device {
 
     async onInit() {
         this.api = null;
+        this._sessionGeneration = 0;
+        this._deleted = false;
+        this._apiEventListeners = null;
+        this._availabilityWatchdogId = null;
+        this._sessionStartedAt = null;
+        this._lastValidReadingAt = null;
+        this._watchdogUnavailable = false;
+        this._availabilityUpdateQueue = Promise.resolve();
+        this._activeRefreshInterval = DEFAULT_REFRESH_INTERVAL_SECONDS;
+        this._activeTimeout = DEFAULT_REQUEST_TIMEOUT_SECONDS;
+
         this.logMessage(`Sigenergy ${this.constructor.name} device initiated`);
 
         await this.initializeSession(
@@ -19,24 +37,91 @@ class BaseDevice extends Device {
     }
 
     async destroySession() {
-        if (this.api) {
-            await this.api.disconnect();
+        this._stopAvailabilityWatchdog();
+
+        const api = this.api;
+        this.api = null;
+        this._detachApiEventListeners(api);
+
+        if (api) {
+            await api.disconnect();
         }
     }
 
     async initializeSession(host, port, modbus_unitId, refreshInterval, timeout) {
+        if (this._deleted) {
+            return;
+        }
+
+        const generation = ++this._sessionGeneration;
+        this._stopAvailabilityWatchdog();
+        this._sessionStartedAt = null;
+        this._lastValidReadingAt = null;
+        this._watchdogUnavailable = false;
+
+        // Queue a generation-bound reset immediately after invalidating the old
+        // session. It runs behind any in-flight old transition, so a late
+        // setAvailable cannot make the replacement session available before it
+        // produces valid data.
+        const availabilityReset = this._queueAvailabilityUpdate(
+            false,
+            'Waiting for valid device data',
+            null,
+            generation
+        );
+
         try {
+            // Null and detach the old API synchronously before awaiting its
+            // teardown, so no old event can race with the replacement session.
             await this.destroySession();
-            await this.setupSession(host, port, modbus_unitId, refreshInterval, timeout);
-            // Availability and reconnection are driven by the API's
-            // 'connectionStatus' event and its health-check backoff (lib/base.js
-            // is the single reconnect engine), so there is no retry timer here.
+            if (!this._isCurrentGeneration(generation)) {
+                return;
+            }
+
+            try {
+                await availabilityReset;
+            } catch (error) {
+                if (this._isCurrentGeneration(generation)) {
+                    this.error('Failed to reset device availability:', utilFunctions.formatError(error));
+                }
+            }
+
+            if (!this._isCurrentGeneration(generation)) {
+                return;
+            }
+
+            await this.setupSession(host, port, modbus_unitId, refreshInterval, timeout, generation);
+            // Availability is driven by guarded reading events. lib/base.js is
+            // the only reconnect engine, so the device layer does not retry.
         } catch (error) {
+            if (!this._isCurrentGeneration(generation)) {
+                return;
+            }
+
+            const failedApi = this.api;
+            this.api = null;
+            this._detachApiEventListeners(failedApi);
+            if (failedApi) {
+                try {
+                    await failedApi.disconnect();
+                } catch (_) {
+                    // Preserve the original setup failure below.
+                }
+            }
+
+            if (!this._isCurrentGeneration(generation)) {
+                return;
+            }
+
             // Reached only for unexpected setup failures (e.g. createApi); the
-            // API layer handles connection failures itself and reports them via
-            // 'connectionStatus'.
+            // API layer reports normal connection failures through status.
             this.error('Failed to initialize device connection:', utilFunctions.formatError(error));
-            await this.setUnavailable(utilFunctions.formatError(error) || 'Connection failed');
+            await this._queueAvailabilityUpdate(
+                false,
+                utilFunctions.formatError(error) || 'Connection failed',
+                null,
+                generation
+            );
         }
     }
 
@@ -49,12 +134,16 @@ class BaseDevice extends Device {
      * @param {object} options - { host, port, modbus_unitId, refreshInterval, timeout, device }
      * @returns {object} the device API instance (a lib/base.js subclass)
      */
-    createApi(options) {
+    createApi(_options) {
         throw new Error(`${this.constructor.name} must implement createApi(options)`);
     }
 
-    async setupSession(host, port, modbus_unitId, refreshInterval, timeout) {
-        this.api = this.createApi({
+    async setupSession(host, port, modbus_unitId, refreshInterval, timeout, generation = this._sessionGeneration) {
+        if (!this._isCurrentGeneration(generation)) {
+            return;
+        }
+
+        const api = this.createApi({
             host,
             port,
             modbus_unitId,
@@ -63,44 +152,247 @@ class BaseDevice extends Device {
             device: this
         });
 
-        // Subscribe before initialize(): the initial 'connectionStatus' is
-        // emitted synchronously during initialize(), so the listener must
-        // already be attached to catch the first connect/fail.
-        this._initializeEventListeners();
-        await this.api.initialize();
-    }
-
-    /**
-     * Wire API events to their handlers. 'readings', 'error' and
-     * 'connectionStatus' are always subscribed; 'properties' is only subscribed
-     * when the subclass implements a _handlePropertiesEvent (not every device
-     * exposes INFO registers).
-     */
-    _initializeEventListeners() {
-        if (typeof this._handlePropertiesEvent === 'function') {
-            this.api.on('properties', this._handlePropertiesEvent.bind(this));
+        if (!this._isCurrentGeneration(generation)) {
+            await api.disconnect();
+            return;
         }
-        this.api.on('readings', this._handleReadingsEvent.bind(this));
-        this.api.on('error', this._handleErrorEvent.bind(this));
-        this.api.on('connectionStatus', this._handleConnectionStatus.bind(this));
+
+        this.api = api;
+        this._activeRefreshInterval = this._positiveNumberOrDefault(
+            refreshInterval,
+            DEFAULT_REFRESH_INTERVAL_SECONDS
+        );
+        this._activeTimeout = this._positiveNumberOrDefault(
+            timeout,
+            DEFAULT_REQUEST_TIMEOUT_SECONDS
+        );
+
+        // Subscribe before initialize(): the initial 'connectionStatus' is
+        // emitted during initialize(), so the listener must already be attached.
+        this._initializeEventListeners(api, generation);
+        await api.initialize();
+
+        if (!this._isCurrentSession(api, generation)) {
+            this._detachApiEventListeners(api);
+            await api.disconnect();
+        }
     }
 
     /**
-     * Reflect the API connection state onto the Homey device availability.
-     * This is the single place that marks the device available/unavailable.
+     * Wire API events to generation-bound wrappers. 'properties' remains
+     * optional for devices that do not implement a properties handler.
      */
-    async _handleConnectionStatus({ connected, error } = {}) {
+    _initializeEventListeners(api = this.api, generation = this._sessionGeneration) {
+        if (!api || !this._isCurrentSession(api, generation)) {
+            return;
+        }
+
+        const listeners = {
+            api,
+            generation,
+            properties: null,
+            readings: message => this._handleApiReadings(message, api, generation),
+            error: error => {
+                if (this._isCurrentSession(api, generation)) {
+                    return this._handleErrorEvent(error);
+                }
+                return undefined;
+            },
+            connectionStatus: status => {
+                if (this._isCurrentSession(api, generation)) {
+                    return this._handleConnectionStatus(status, api, generation);
+                }
+                return undefined;
+            }
+        };
+
+        if (typeof this._handlePropertiesEvent === 'function') {
+            listeners.properties = message => {
+                if (this._isCurrentSession(api, generation)) {
+                    return this._handlePropertiesEvent(message);
+                }
+                return undefined;
+            };
+            api.on('properties', listeners.properties);
+        }
+
+        api.on('readings', listeners.readings);
+        api.on('error', listeners.error);
+        api.on('connectionStatus', listeners.connectionStatus);
+        this._apiEventListeners = listeners;
+    }
+
+    _detachApiEventListeners(api) {
+        const listeners = this._apiEventListeners;
+        if (!api || !listeners || listeners.api !== api) {
+            return;
+        }
+
+        if (listeners.properties) {
+            api.removeListener('properties', listeners.properties);
+        }
+        api.removeListener('readings', listeners.readings);
+        api.removeListener('error', listeners.error);
+        api.removeListener('connectionStatus', listeners.connectionStatus);
+        this._apiEventListeners = null;
+    }
+
+    async _handleApiReadings(message, api, generation) {
+        if (!this._isCurrentSession(api, generation)
+            || !message
+            || typeof message !== 'object'
+            || Object.keys(message).length === 0) {
+            return;
+        }
+
+        this._lastValidReadingAt = Date.now();
+        this._watchdogUnavailable = false;
+
+        try {
+            await this._queueAvailabilityUpdate(true, null, api, generation);
+        } catch (error) {
+            if (this._isCurrentSession(api, generation)) {
+                this.error('Failed to update device availability:', utilFunctions.formatError(error));
+            }
+        }
+
+        if (this._isCurrentSession(api, generation)) {
+            await this._handleReadingsEvent(message);
+        }
+    }
+
+    /**
+     * Reflect connection loss immediately. A successful TCP connection only
+     * starts the data watchdog; availability waits for a valid readings event.
+     */
+    async _handleConnectionStatus({ connected, error } = {}, api = this.api, generation = this._sessionGeneration) {
+        if (!this._isCurrentSession(api, generation)) {
+            return;
+        }
+
         try {
             if (connected) {
-                await this.setAvailable();
-            } else {
-                await this.setUnavailable(
-                    error ? utilFunctions.formatError(error) : 'Connection lost'
-                );
+                this._sessionStartedAt = Date.now();
+                this._lastValidReadingAt = null;
+                this._watchdogUnavailable = false;
+                this._startAvailabilityWatchdog(api, generation);
+                return;
             }
+
+            this._stopAvailabilityWatchdog();
+            this._sessionStartedAt = null;
+            this._lastValidReadingAt = null;
+            this._watchdogUnavailable = false;
+            await this._queueAvailabilityUpdate(
+                false,
+                error ? utilFunctions.formatError(error) : 'Connection lost',
+                api,
+                generation
+            );
         } catch (e) {
-            this.error('Failed to update device availability:', utilFunctions.formatError(e));
+            if (this._isCurrentSession(api, generation)) {
+                this.error('Failed to update device availability:', utilFunctions.formatError(e));
+            }
         }
+    }
+
+    _startAvailabilityWatchdog(api, generation) {
+        this._stopAvailabilityWatchdog();
+        if (!this._isCurrentSession(api, generation)) {
+            return;
+        }
+
+        const refreshMs = this._activeRefreshInterval * 1000;
+        const timeoutMs = this._activeTimeout * 1000;
+        // Allow the first scheduled poll plus a conservative complete sweep of
+        // sequential Modbus requests before declaring the data stale.
+        const staleThresholdMs = Math.max(
+            MIN_DATA_STALE_THRESHOLD_MS,
+            refreshMs * 2,
+            refreshMs + (timeoutMs * EXPECTED_REQUESTS_PER_SWEEP) + MIN_WATCHDOG_INTERVAL_MS
+        );
+        const watchdogIntervalMs = Math.max(
+            MIN_WATCHDOG_INTERVAL_MS,
+            Math.min(refreshMs, MAX_WATCHDOG_INTERVAL_MS)
+        );
+
+        const watchdogId = this.homey.setInterval(async () => {
+            if (!this._isCurrentSession(api, generation)
+                || this._availabilityWatchdogId !== watchdogId) {
+                return;
+            }
+
+            const lastDataAt = this._lastValidReadingAt || this._sessionStartedAt;
+            if (!lastDataAt
+                || Date.now() - lastDataAt < staleThresholdMs
+                || this._watchdogUnavailable) {
+                return;
+            }
+
+            this._watchdogUnavailable = true;
+            try {
+                await this._queueAvailabilityUpdate(
+                    false,
+                    'No data received from device',
+                    api,
+                    generation
+                );
+            } catch (error) {
+                if (this._isCurrentSession(api, generation)
+                    && this._availabilityWatchdogId === watchdogId) {
+                    this._watchdogUnavailable = false;
+                    this.error('Failed to update device availability:', utilFunctions.formatError(error));
+                }
+            }
+        }, watchdogIntervalMs);
+
+        this._availabilityWatchdogId = watchdogId;
+    }
+
+    _queueAvailabilityUpdate(available, message, api, generation) {
+        const update = this._availabilityUpdateQueue.then(async () => {
+            const isCurrent = api
+                ? this._isCurrentSession(api, generation)
+                : this._isCurrentGeneration(generation);
+
+            if (!isCurrent) {
+                return;
+            }
+
+            const currentlyAvailable = this.getAvailable();
+            if (available) {
+                if (currentlyAvailable === false) {
+                    await this.setAvailable();
+                }
+            } else if (currentlyAvailable === true) {
+                await this.setUnavailable(message);
+            }
+        });
+
+        // Keep later transitions ordered even if this Homey update fails. The
+        // caller still receives the original rejecting promise for logging.
+        this._availabilityUpdateQueue = update.catch(() => {});
+        return update;
+    }
+
+    _stopAvailabilityWatchdog() {
+        if (this._availabilityWatchdogId) {
+            this.homey.clearInterval(this._availabilityWatchdogId);
+            this._availabilityWatchdogId = null;
+        }
+    }
+
+    _isCurrentGeneration(generation) {
+        return !this._deleted && generation === this._sessionGeneration;
+    }
+
+    _isCurrentSession(api, generation) {
+        return this._isCurrentGeneration(generation) && api === this.api;
+    }
+
+    _positiveNumberOrDefault(value, fallback) {
+        const number = Number(value);
+        return Number.isFinite(number) && number > 0 ? number : fallback;
     }
 
     async _updateProperty(key, value) {
@@ -127,7 +419,7 @@ class BaseDevice extends Device {
         }
     }
 
-    async _handlePropertyTriggers(key, value) {
+    async _handlePropertyTriggers(_key, _value) {
         // Placeholder method for device-specific event triggers
         // Override this method in child classes to implement custom trigger logic
         // Example:
@@ -175,15 +467,23 @@ class BaseDevice extends Device {
         }
     }
 
-    onDeleted() {
+    async onDeleted() {
         this.logMessage(`Sigenergy ${this.constructor.name} device deleted`);
-        if (this.api) {
-            this.api.disconnect();
-        }
+        this._deleted = true;
+        this._sessionGeneration += 1;
+        this._stopAvailabilityWatchdog();
+        this._sessionStartedAt = null;
+        this._lastValidReadingAt = null;
+
+        const api = this.api;
         this.api = null;
+        this._detachApiEventListeners(api);
+        if (api) {
+            await api.disconnect();
+        }
     }
 
-    async onSettings({ oldSettings, newSettings, changedKeys }) {
+    async onSettings({ newSettings, changedKeys }) {
         let changeConn = false;
         let host, port, modbus_unitId, refreshInterval, timeout;
         if (changedKeys.indexOf("address") > -1) {
@@ -218,7 +518,7 @@ class BaseDevice extends Device {
 
         if (changeConn) {
             // Re-initialize the Modbus session since connection setting(s) changed
-            this.initializeSession(
+            return this.initializeSession(
                 host || this.getSettings().address,
                 port || this.getSettings().port,
                 modbus_unitId || this.getSettings().modbus_unitId,
@@ -226,6 +526,8 @@ class BaseDevice extends Device {
                 timeout || this.getSettings().timeout
             );
         }
+
+        return undefined;
     }
 
     async updateSetting(key, value) {
