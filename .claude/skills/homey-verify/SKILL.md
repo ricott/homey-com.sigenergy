@@ -87,8 +87,10 @@ homey app install
 ```
 Stopping a run leaves no usable app behind: Ctrl+C uninstalls the dev build,
 and a hard kill leaves the dev build running. `homey app install` installs
-the working tree as a normal app, with the paired devices kept. Tell the user
-it is installed from this checkout, not the App Store.
+the working tree and keeps it running, with the paired devices kept. Homey
+still treats it as a development version, not the App Store release, so tell
+the user that; they can reinstall from the App Store to go back to the store
+build.
 
 ## Notes
 - **Check the installed version first.** If the store has already shipped
