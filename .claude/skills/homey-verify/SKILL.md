@@ -18,8 +18,9 @@ include `list_devices`; load them with ToolSearch if they are deferred).
 ## Guardrails
 - **Never pass `--clean`.** It deletes every paired device and all settings
   for the app on the user's real Homey.
-- **The dev build replaces the installed store version while it runs.** The
-  user's real devices run this code during the test. Say so before starting.
+- **The test run replaces the user's installed copy while it runs.** The
+  user installs their own apps with `homey app install` from the repo, and
+  their real devices run the code under test until step 7 reinstalls it.
 - **Read only by default.** Do not trigger a flow card, set a capability or
   start a flow that acts on hardware (power limits, chargers, relays, modes)
   unless the user approves that specific action in chat.
@@ -81,22 +82,21 @@ Stop the background run (TaskStop or kill the process). Then report a table:
 check, expected, observed, pass/fail, with the relevant log line or value
 for each. Mention anything unexpected even if it was not on the checklist.
 
-Then reinstall the app so the user keeps a working, non-development install:
+Then reinstall the app from the repo root, which is how the user normally
+installs it:
 ```
 homey app install
 ```
-Stopping a run leaves no usable app behind: Ctrl+C uninstalls the dev build,
-and a hard kill leaves the dev build running. `homey app install` installs
-the working tree and keeps it running, with the paired devices kept. Homey
-still treats it as a development version, not the App Store release, so tell
-the user that; they can reinstall from the App Store to go back to the store
-build.
+Stopping a run does not leave a normal install behind: Ctrl+C uninstalls the
+app, and a hard kill leaves the `run` session's build in place. `homey app
+install` puts the local working tree back as the installed app, with the
+paired devices kept.
 
 ## Notes
-- **Check the installed version first.** If the store has already shipped
-  the version under test, the step 2 snapshot shows the migrations already
-  done, and the dev run will log no migration lines. That is expected, not
-  a failure.
+- **Check the installed version first.** If the user has already installed
+  the version under test with `homey app install`, the step 2 snapshot shows
+  the migrations already done, and the run will log no migration lines. That
+  is expected, not a failure.
 - **Timing (com.sigenergy, 10 s refresh):** install and start take about a
   minute, devices connect within a second of start, and info registers and
   the first poll arrive about 10 s later. About 45 s after "Running" is
