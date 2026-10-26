@@ -86,5 +86,19 @@ the Homey does not go back to the store version on its own, they can
 reinstall it from the Homey App Store.
 
 ## Notes
-- First runs of this skill should record what actually happens on stop (what
-  stays installed) and how long the first poll takes, and update this file.
+- **Check the installed version first.** If the store has already shipped
+  the version under test, the step 2 snapshot shows the migrations already
+  done, and the dev run will log no migration lines. That is expected, not
+  a failure.
+- **Timing (com.sigenergy, 10 s refresh):** install and start take about a
+  minute, devices connect within a second of start, and info registers and
+  the first poll arrive about 10 s later. About 45 s after "Running" is
+  enough for every device to have polled.
+- **Stopping:** killing the background `homey app run` ends the log stream,
+  but the devices kept updating afterwards. The MCP cannot show whether the
+  dev build or the store version is now running, so tell the user to check
+  the app's page in the Homey app and reinstall from the store if it shows
+  a development build.
+- **`list_devices` is large** (every device in the home, ~25k tokens per
+  call). Call it at most three times: before, after the first poll, and
+  after stopping.
