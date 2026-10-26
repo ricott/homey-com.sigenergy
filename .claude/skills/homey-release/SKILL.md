@@ -52,6 +52,10 @@ homey app validate --level publish
 Must end with: `validated successfully against level 'publish'`.
 This also regenerates `app.json` from `.homeycompose/app.json`.
 
+## Step 3b — Optional: verify on the Homey
+For changes that touch devices, capabilities or migrations, offer to run the
+`homey-verify` skill now, before anything is tagged or pushed.
+
 ## Step 4 — Commit + tag
 Tag convention is **v-prefixed and lightweight** (e.g. `v0.4.1`). Review
 `git status` first, then stage the release files explicitly (avoid blind
