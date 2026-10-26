@@ -81,9 +81,14 @@ Stop the background run (TaskStop or kill the process). Then report a table:
 check, expected, observed, pass/fail, with the relevant log line or value
 for each. Mention anything unexpected even if it was not on the checklist.
 
-Tell the user the dev build was running in place of the store version. If
-the Homey does not go back to the store version on its own, they can
-reinstall it from the Homey App Store.
+Then reinstall the app so the user keeps a working, non-development install:
+```
+homey app install
+```
+Stopping a run leaves no usable app behind: Ctrl+C uninstalls the dev build,
+and a hard kill leaves the dev build running. `homey app install` installs
+the working tree as a normal app, with the paired devices kept. Tell the user
+it is installed from this checkout, not the App Store.
 
 ## Notes
 - **Check the installed version first.** If the store has already shipped
@@ -94,11 +99,9 @@ reinstall it from the Homey App Store.
   minute, devices connect within a second of start, and info registers and
   the first poll arrive about 10 s later. About 45 s after "Running" is
   enough for every device to have polled.
-- **Stopping:** killing the background `homey app run` ends the log stream,
-  but the devices kept updating afterwards. The MCP cannot show whether the
-  dev build or the store version is now running, so tell the user to check
-  the app's page in the Homey app and reinstall from the store if it shows
-  a development build.
+- **Stopping:** a hard kill (TaskStop) skips the CLI's Ctrl+C cleanup, so
+  the dev build is left installed and running on the Homey. Either way the
+  run is over, so always finish with `homey app install` (step 7).
 - **`list_devices` is large** (every device in the home, ~25k tokens per
   call). Call it at most three times: before, after the first poll, and
   after stopping.
