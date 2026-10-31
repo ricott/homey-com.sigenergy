@@ -102,5 +102,9 @@
   "0.6.6": {
     "en": "Battery device: Min cell temperature always showed 0 because the battery does not report it, so it has been replaced by the average cell temperature.",
     "sv": "Batteri-enheten: Min celltemperatur visade alltid 0 eftersom batteriet inte rapporterar den, så den har ersatts med medeltemperaturen för cellerna."
+  },
+  "0.7.0": {
+    "en": "New Plant flow cards to hold the battery at its current level and release it again, for example while the car is charging. Unlike the discharge limit, this works in AI mode, and the previous setting is restored on release. Battery device: min cell temperature is back on systems that report it, such as retrofit installations.",
+    "sv": "Nya flödeskort för System för att hålla batteriet på nuvarande nivå och släppa det igen, till exempel medan bilen laddar. Till skillnad från urladdningsgränsen fungerar detta i AI-läge, och den tidigare inställningen återställs när låsningen släpps. Batteri-enheten: min celltemperatur är tillbaka på system som rapporterar den, till exempel retrofit-installationer."
   }
 }
