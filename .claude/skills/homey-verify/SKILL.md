@@ -77,6 +77,19 @@ Only with the user's approval for each one. Prefer cards that only read or
 that are trivially reversible, state what the card will do on their real
 system, and check the result in the log and device state afterwards.
 
+How to run a card over the MCP:
+- Card ids are `homey:device:<deviceId>:<cardId>`. `list_flow_action_cards`
+  is too large to read directly; it is saved to a file, so pick the card
+  with `jq '.cards[] | select(.id | test("<cardId>"))'`.
+- Create one flow per card with `create_standard_flow`, named
+  `[homey-verify] <what it does>`, trigger
+  `homey:manager:flow:programmatic_trigger`, and the card as a `then`
+  action. Run it with `start_flow`.
+- The MCP cannot delete flows: tell the user which test flows to delete.
+- Where the app talks to a device the Mac can reach, read the device's
+  state directly as well (for example a read-only Modbus script), so the
+  check does not rely only on what the app logs.
+
 ## Step 7 — Stop and report
 Stop the background run (TaskStop or kill the process). Then report a table:
 check, expected, observed, pass/fail, with the relevant log line or value
