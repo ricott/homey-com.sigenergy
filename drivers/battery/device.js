@@ -4,6 +4,10 @@ const Battery = require('../../lib/devices/battery.js');
 const BaseDevice = require('../baseDevice.js');
 const enums = require('../../lib/enums.js');
 
+// Set once the battery has reported a non-zero minimum cell temperature,
+// which shows that this system supports register 30621.
+const STORE_MIN_CELL_SUPPORTED = 'min_cell_temperature_supported';
+
 class BatteryDevice extends BaseDevice {
 
     async onInit() {
@@ -25,9 +29,8 @@ class BatteryDevice extends BaseDevice {
         await this.removeCapabilityHelper('measure_voltage.phaseC');
         await this.removeCapabilityHelper('measure_current.phaseC');
 
-        // The min cell temperature register (30621) always reads 0, so it is
-        // replaced by the average cell temperature (30603).
-        await this.removeCapabilityHelper('measure_temperature.minCell');
+        // Min cell temperature is added or removed per system once readings
+        // arrive, see _updateMinCellTemperature.
         await this.addCapabilityHelper('measure_temperature.avgCell');
     }
 
@@ -85,10 +88,36 @@ class BatteryDevice extends BaseDevice {
         ];
 
         await Promise.all(updates);
+        await this._updateMinCellTemperature(message.minCellTemperature);
 
         // Update firmware setting if changed
         if (firmware !== undefined) {
             await this.updateSettingIfChanged('firmware', firmware, this.getSetting('firmware'));
+        }
+    }
+
+    /**
+     * Register 30621 always reads 0 on some systems (seen on a SigenStor EC
+     * 20.0 TP, V100R001C21SPC117) but reports real values on others, retrofit
+     * installs among them. The capability is only shown once the battery has
+     * reported a non-zero value; until then a constant 0 is treated as
+     * unsupported and the capability is removed. A cell at exactly 0.0 °C on
+     * the first reading only delays the capability until the value changes.
+     */
+    async _updateMinCellTemperature(value) {
+        if (!Number.isFinite(value)) {
+            return;
+        }
+
+        if (value !== 0 && this.getStoreValue(STORE_MIN_CELL_SUPPORTED) !== true) {
+            await this.setStoreValue(STORE_MIN_CELL_SUPPORTED, true);
+        }
+
+        if (this.getStoreValue(STORE_MIN_CELL_SUPPORTED) === true) {
+            await this.addCapabilityHelper('measure_temperature.minCell');
+            await this._updateProperty('measure_temperature.minCell', value);
+        } else {
+            await this.removeCapabilityHelper('measure_temperature.minCell');
         }
     }
 }

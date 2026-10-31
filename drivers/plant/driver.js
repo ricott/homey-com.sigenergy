@@ -48,6 +48,18 @@ class PlantDriver extends BaseDriver {
                 return await args.device.setRemoteEmsControlMode(args.mode);
             });
 
+        // Action: Stop the battery discharging without leaving AI mode
+        this.homey.flow.getActionCard('hold_battery_level')
+            .registerRunListener(async (args) => {
+                return await args.device.holdBatteryLevel();
+            });
+
+        // Action: Undo hold_battery_level
+        this.homey.flow.getActionCard('release_battery_hold')
+            .registerRunListener(async (args) => {
+                return await args.device.releaseBatteryHold();
+            });
+
         // Action: Charge the battery from the grid at a given rate
         this.homey.flow.getActionCard('force_charge_from_grid')
             .registerRunListener(async (args) => {

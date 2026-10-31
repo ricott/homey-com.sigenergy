@@ -53,3 +53,22 @@ test('formatError never yields "[object Object]" for primitives / nullish', () =
     assert.equal(util.formatError(42), '42');
     assert.equal(util.formatError({}), 'Unknown error');
 });
+
+test('holdCutoffSoc holds one whole percent below the current SoC', () => {
+    assert.equal(util.holdCutoffSoc(64.9, 5), 63);
+    assert.equal(util.holdCutoffSoc(80, 5), 79);
+});
+
+test('holdCutoffSoc never goes below the cut-off that applied before the hold', () => {
+    // Near the bottom the original cut-off already stops discharge.
+    assert.equal(util.holdCutoffSoc(5.5, 5), 5);
+    assert.equal(util.holdCutoffSoc(3, 5), 5);
+    // Without a known original, the floor is 0.
+    assert.equal(util.holdCutoffSoc(0.5, undefined), 0);
+    assert.equal(util.holdCutoffSoc(100, 5), 99);
+});
+
+test('holdCutoffSoc returns undefined when the SoC is unknown', () => {
+    assert.equal(util.holdCutoffSoc(undefined, 5), undefined);
+    assert.equal(util.holdCutoffSoc(NaN, 5), undefined);
+});

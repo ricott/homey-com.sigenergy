@@ -11,6 +11,11 @@ const utilFunctions = require('../../lib/util.js');
 const STORE_RATED_CHARGING_POWER = 'ess_rated_charging_power';
 const STORE_RATED_DISCHARGING_POWER = 'ess_rated_discharging_power';
 
+// Battery hold state, persisted so a hold survives an app restart and the
+// release still restores the user's own discharge cut-off SOC.
+const STORE_CUTOFF_BEFORE_HOLD = 'discharge_cutoff_before_hold';
+const STORE_HOLD_CUTOFF = 'discharge_cutoff_hold';
+
 class PlantDevice extends BaseDevice {
 
     async onInit() {
@@ -204,6 +209,100 @@ class PlantDevice extends BaseDevice {
         return this.setRemoteEmsControlMode(enums.REMOTE_EMS_MODE_CHARGE_GRID_FIRST);
     }
 
+    /**
+     * Public method - used by flow action cards.
+     *
+     * Stops the battery discharging without leaving AI mode, by raising the
+     * discharge cut-off SOC (40048) to just below the current SoC. The ESS
+     * discharge limit (40034) is ignored in AI mode, but the cut-off is not.
+     * The cut-off that applied before the first hold is saved and restored by
+     * releaseBatteryHold; holding again while held keeps that saved value.
+     */
+    async holdBatteryLevel() {
+        if (!this.api) {
+            throw new Error('Failed to hold the battery level! Device is not connected.');
+        }
+
+        try {
+            const soc = await this.api.readBatterySoc();
+            let cutoffBeforeHold = this.getStoreValue(STORE_CUTOFF_BEFORE_HOLD);
+            if (!Number.isFinite(cutoffBeforeHold)) {
+                cutoffBeforeHold = await this.api.readDischargeCutoffSoc();
+                await this.setStoreValue(STORE_CUTOFF_BEFORE_HOLD, cutoffBeforeHold);
+            }
+
+            const cutoff = utilFunctions.holdCutoffSoc(soc, cutoffBeforeHold);
+            await this.api.setDischargeCutoffSoc(cutoff);
+            await this.setStoreValue(STORE_HOLD_CUTOFF, cutoff);
+
+            this.logMessage(`Holding battery at ${soc}% SoC: discharge cut-off SOC set to ${cutoff}%`
+                + ` (was ${cutoffBeforeHold}%, EMS work mode: ${this.getCapabilityValue('ems_work_mode') ?? 'unknown'})`);
+        } catch (error) {
+            this.error('Failed to hold the battery level!', error);
+            throw new Error(`Failed to hold the battery level! ${utilFunctions.formatError(error)}`);
+        }
+        return true;
+    }
+
+    /**
+     * Public method - used by flow action cards.
+     *
+     * Restores the discharge cut-off SOC saved by holdBatteryLevel. Does
+     * nothing when no hold is active, so it is safe to run unconditionally.
+     */
+    async releaseBatteryHold() {
+        const cutoffBeforeHold = this.getStoreValue(STORE_CUTOFF_BEFORE_HOLD);
+        if (!Number.isFinite(cutoffBeforeHold)) {
+            this.logMessage('Release battery hold: no hold active');
+            return true;
+        }
+
+        if (!this.api) {
+            throw new Error('Failed to release the battery hold! Device is not connected.');
+        }
+
+        try {
+            await this.api.setDischargeCutoffSoc(cutoffBeforeHold);
+        } catch (error) {
+            this.error('Failed to release the battery hold!', error);
+            throw new Error(`Failed to release the battery hold! ${utilFunctions.formatError(error)}`);
+        }
+
+        await this.unsetStoreValue(STORE_CUTOFF_BEFORE_HOLD);
+        await this.unsetStoreValue(STORE_HOLD_CUTOFF);
+        this.logMessage(`Released battery hold: discharge cut-off SOC restored to ${cutoffBeforeHold}%`);
+        return true;
+    }
+
+    /**
+     * While a hold is active, solar can still charge the battery. Raise the
+     * cut-off along with the SoC so that charge is held too, rather than
+     * discharged back down to the level the hold started at. It only ever
+     * moves up, one whole percent at a time, so a steady SoC causes no writes.
+     */
+    async _followBatteryHold(soc) {
+        const holdCutoff = this.getStoreValue(STORE_HOLD_CUTOFF);
+        if (!Number.isFinite(holdCutoff) || this._raisingHold || !this.api) {
+            return;
+        }
+
+        const cutoff = utilFunctions.holdCutoffSoc(soc, this.getStoreValue(STORE_CUTOFF_BEFORE_HOLD));
+        if (cutoff === undefined || cutoff <= holdCutoff) {
+            return;
+        }
+
+        this._raisingHold = true;
+        try {
+            await this.api.setDischargeCutoffSoc(cutoff);
+            await this.setStoreValue(STORE_HOLD_CUTOFF, cutoff);
+            this.logMessage(`Battery hold raised to ${cutoff}% as SoC rose to ${soc}%`);
+        } catch (error) {
+            this.error('Failed to raise the battery hold:', error);
+        } finally {
+            this._raisingHold = false;
+        }
+    }
+
     async _writeRemoteEms(action, write) {
         if (!this.api) {
             throw new Error(`Failed to ${action}! Device is not connected.`);
@@ -264,6 +363,8 @@ class PlantDevice extends BaseDevice {
             this._updateProperty('meter_power.consumption_daily', message.dailyConsumption),
             this._updateProperty('meter_power.consumption', message.totalConsumption),
         ]);
+
+        await this._followBatteryHold(message.batterySoc);
 
         if (Number.isFinite(message.gridStatus)) {
             await this.setStoreValue('grid_status', enums.decodeGridStatus(message.gridStatus));

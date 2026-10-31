@@ -1,0 +1,18 @@
+{
+    "id": "release_battery_hold",
+    "title": {
+        "en": "Release the battery hold",
+        "sv": "Släpp batterilåsningen"
+    },
+    "hint": {
+        "en": "Restores the discharge cut-off SOC that applied before 'Hold the battery at its current level', so the battery can discharge normally again. Does nothing if the battery is not held.",
+        "sv": "Återställer urladdningsgränsen (SOC) som gällde före 'Håll batteriet på nuvarande nivå', så att batteriet kan laddas ur som vanligt igen. Gör ingenting om batteriet inte är låst."
+    },
+    "args": [
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=plant"
+        }
+    ]
+}

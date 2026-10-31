@@ -32,6 +32,12 @@
         "firmware"
     ],
     "capabilitiesOptions": {
+        "measure_temperature.minCell": {
+            "title": {
+                "en": "Min cell temp",
+                "sv": "Min celltemp"
+            }
+        },
         "measure_temperature.avgCell": {
             "title": {
                 "en": "Avg cell temp",

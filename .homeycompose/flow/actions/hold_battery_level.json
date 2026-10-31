@@ -1,0 +1,18 @@
+{
+    "id": "hold_battery_level",
+    "title": {
+        "en": "Hold the battery at its current level",
+        "sv": "Håll batteriet på nuvarande nivå"
+    },
+    "hint": {
+        "en": "Stops the battery discharging, for example while the car is charging, and keeps AI mode running. Works by raising the discharge cut-off SOC to just below the current level; solar can still charge the battery. While held, the house is also supplied from solar and the grid instead of the battery. Use 'Release the battery hold' afterwards to restore the previous cut-off SOC.",
+        "sv": "Stoppar urladdning av batteriet, till exempel medan bilen laddar, och låter AI-läget fortsätta. Fungerar genom att höja urladdningsgränsen (SOC) till strax under nuvarande nivå; solceller kan fortfarande ladda batteriet. Under tiden försörjs även huset från solceller och elnätet i stället för batteriet. Använd 'Släpp batterilåsningen' efteråt för att återställa den tidigare urladdningsgränsen."
+    },
+    "args": [
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=plant"
+        }
+    ]
+}
