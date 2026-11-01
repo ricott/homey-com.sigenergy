@@ -106,5 +106,9 @@
   "0.7.0": {
     "en": "New Plant flow cards to hold the battery at its current level and release it again, for example while the car is charging. Unlike the discharge limit, this works in AI mode, and the previous setting is restored on release. Battery device: min cell temperature is back on systems that report it, such as retrofit installations.",
     "sv": "Nya flödeskort för System för att hålla batteriet på nuvarande nivå och släppa det igen, till exempel medan bilen laddar. Till skillnad från urladdningsgränsen fungerar detta i AI-läge, och den tidigare inställningen återställs när låsningen släpps. Batteri-enheten: min celltemperatur är tillbaka på system som rapporterar den, till exempel retrofit-installationer."
+  },
+  "0.7.1": {
+    "en": "Hold the battery now stops discharge sooner: the cut-off is set to the current level instead of one percent below. If the battery level drops while held, the hold follows it down so the system does not charge from the grid. More detail in the log to help troubleshoot the hold.",
+    "sv": "Håll batteriet stoppar nu urladdningen tidigare: gränsen sätts till nuvarande nivå i stället för en procent under. Om batterinivån sjunker under låsningen följer gränsen med nedåt så att systemet inte laddar från elnätet. Mer information i loggen för felsökning av låsningen."
   }
 }
