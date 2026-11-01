@@ -16,6 +16,12 @@ const STORE_RATED_DISCHARGING_POWER = 'ess_rated_discharging_power';
 const STORE_CUTOFF_BEFORE_HOLD = 'discharge_cutoff_before_hold';
 const STORE_HOLD_CUTOFF = 'discharge_cutoff_hold';
 
+// While held, a battery that keeps discharging means the plant is not
+// enforcing the cut-off. Logged at most this often, so a diagnostic report
+// shows it without flooding the log.
+const HOLD_DISCHARGE_WARNING_INTERVAL_MS = 5 * 60 * 1000;
+const HOLD_DISCHARGE_WARNING_W = 100;
+
 class PlantDevice extends BaseDevice {
 
     async onInit() {
@@ -234,9 +240,12 @@ class PlantDevice extends BaseDevice {
             const cutoff = utilFunctions.holdCutoffSoc(soc, cutoffBeforeHold);
             await this.api.setDischargeCutoffSoc(cutoff);
             await this.setStoreValue(STORE_HOLD_CUTOFF, cutoff);
+            this._holdWarnedAt = Date.now();
 
             this.logMessage(`Holding battery at ${soc}% SoC: discharge cut-off SOC set to ${cutoff}%`
-                + ` (was ${cutoffBeforeHold}%, EMS work mode: ${this.getCapabilityValue('ems_work_mode') ?? 'unknown'})`);
+                + ` (was ${cutoffBeforeHold}%, ${await this._describeDischargeCutoffReadback()},`
+                + ` battery power: ${this.getCapabilityValue('measure_power.battery') ?? 'unknown'} W,`
+                + ` EMS work mode: ${this.getCapabilityValue('ems_work_mode') ?? 'unknown'})`);
         } catch (error) {
             this.error('Failed to hold the battery level!', error);
             throw new Error(`Failed to hold the battery level! ${utilFunctions.formatError(error)}`);
@@ -270,36 +279,88 @@ class PlantDevice extends BaseDevice {
 
         await this.unsetStoreValue(STORE_CUTOFF_BEFORE_HOLD);
         await this.unsetStoreValue(STORE_HOLD_CUTOFF);
-        this.logMessage(`Released battery hold: discharge cut-off SOC restored to ${cutoffBeforeHold}%`);
+        this._holdWarnedAt = undefined;
+        this.logMessage(`Released battery hold: discharge cut-off SOC restored to ${cutoffBeforeHold}%`
+            + ` (${await this._describeDischargeCutoffReadback()})`);
         return true;
+    }
+
+    /**
+     * Like _describeEssLimitReadback: what the plant stored after a cut-off
+     * write, so a diagnostic report tells "stored but ignored" apart from
+     * "never stored". A failed readback is only reported.
+     */
+    async _describeDischargeCutoffReadback() {
+        try {
+            return `readback ${await this.api.readDischargeCutoffSoc()}%`;
+        } catch (error) {
+            return `readback failed: ${utilFunctions.formatError(error)}`;
+        }
+    }
+
+    /**
+     * While held, the battery should stop discharging once the SoC reaches the
+     * cut-off. If it is still discharging, log it every few minutes with the
+     * values needed to tell whether the plant ignores the cut-off.
+     */
+    _checkHoldDischarge(soc, batteryPower, holdCutoff) {
+        if (!Number.isFinite(batteryPower) || batteryPower > -HOLD_DISCHARGE_WARNING_W) {
+            return;
+        }
+
+        const now = Date.now();
+        if (this._holdWarnedAt === undefined) {
+            // Hold carried over from before an app restart: start counting now.
+            this._holdWarnedAt = now;
+            return;
+        }
+        if (now - this._holdWarnedAt < HOLD_DISCHARGE_WARNING_INTERVAL_MS) {
+            return;
+        }
+
+        this._holdWarnedAt = now;
+        this.logMessage(`Battery hold active but still discharging ${batteryPower} W`
+            + ` (SoC ${soc}%, cut-off ${holdCutoff}%,`
+            + ` EMS work mode: ${this.getCapabilityValue('ems_work_mode') ?? 'unknown'})`);
     }
 
     /**
      * While a hold is active, solar can still charge the battery. Raise the
      * cut-off along with the SoC so that charge is held too, rather than
-     * discharged back down to the level the hold started at. It only ever
-     * moves up, one whole percent at a time, so a steady SoC causes no writes.
+     * discharged back down to the level the hold started at. If the SoC falls
+     * more than one percent below the cut-off (standby drain or the battery
+     * correcting its SoC estimate), lower the cut-off to the SoC, so the plant
+     * does not charge from the grid to get back up to it. A steady SoC causes
+     * no writes.
      */
-    async _followBatteryHold(soc) {
+    async _followBatteryHold(soc, batteryPower) {
         const holdCutoff = this.getStoreValue(STORE_HOLD_CUTOFF);
-        if (!Number.isFinite(holdCutoff) || this._raisingHold || !this.api) {
+        if (!Number.isFinite(holdCutoff) || this._adjustingHold || !this.api) {
             return;
         }
+
+        this._checkHoldDischarge(soc, batteryPower, holdCutoff);
 
         const cutoff = utilFunctions.holdCutoffSoc(soc, this.getStoreValue(STORE_CUTOFF_BEFORE_HOLD));
-        if (cutoff === undefined || cutoff <= holdCutoff) {
+        if (cutoff === undefined || cutoff === holdCutoff) {
             return;
         }
 
-        this._raisingHold = true;
+        const raise = cutoff > holdCutoff;
+        if (!raise && soc >= holdCutoff - 1) {
+            return;
+        }
+
+        this._adjustingHold = true;
         try {
             await this.api.setDischargeCutoffSoc(cutoff);
             await this.setStoreValue(STORE_HOLD_CUTOFF, cutoff);
-            this.logMessage(`Battery hold raised to ${cutoff}% as SoC rose to ${soc}%`);
+            this.logMessage(`Battery hold ${raise ? 'raised' : 'lowered'} to ${cutoff}% as SoC ${raise ? 'rose' : 'fell'} to ${soc}%`
+                + ` (${await this._describeDischargeCutoffReadback()})`);
         } catch (error) {
-            this.error('Failed to raise the battery hold:', error);
+            this.error(`Failed to ${raise ? 'raise' : 'lower'} the battery hold:`, error);
         } finally {
-            this._raisingHold = false;
+            this._adjustingHold = false;
         }
     }
 
@@ -364,7 +425,7 @@ class PlantDevice extends BaseDevice {
             this._updateProperty('meter_power.consumption', message.totalConsumption),
         ]);
 
-        await this._followBatteryHold(message.batterySoc);
+        await this._followBatteryHold(message.batterySoc, message.batteryPower);
 
         if (Number.isFinite(message.gridStatus)) {
             await this.setStoreValue('grid_status', enums.decodeGridStatus(message.gridStatus));
