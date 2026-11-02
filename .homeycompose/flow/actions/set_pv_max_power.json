@@ -1,0 +1,32 @@
+{
+    "id": "set_pv_max_power",
+    "title": {
+        "en": "Set max solar power",
+        "sv": "Sätt max solcellseffekt"
+    },
+    "titleFormatted": {
+        "en": "Set max solar power to [[power]] kW",
+        "sv": "Sätt max solcellseffekt till [[power]] kW"
+    },
+    "hint": {
+        "en": "Caps how much power the solar panels may produce, for example while the feed-in price is negative. Works in every EMS mode, including AI mode. Unlike a grid export limit it also reduces solar charging of the battery. Set 0 to stop solar production completely. Use 'Remove the max solar power limit' afterwards.",
+        "sv": "Begränsar hur mycket effekt solcellerna får producera, till exempel när ersättningen för såld el är negativ. Fungerar i alla EMS-lägen, även AI-läget. Till skillnad från en exportgräns minskar den även solcellsladdningen av batteriet. Sätt 0 för att helt stoppa solcellsproduktionen. Använd 'Ta bort begränsningen av solcellseffekten' efteråt."
+    },
+    "args": [
+        {
+            "name": "power",
+            "type": "number",
+            "min": 0,
+            "step": 0.1,
+            "title": {
+                "en": "Power (kW)",
+                "sv": "Effekt (kW)"
+            }
+        },
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=plant"
+        }
+    ]
+}

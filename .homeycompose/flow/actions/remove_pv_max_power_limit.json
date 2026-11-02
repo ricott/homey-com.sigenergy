@@ -1,0 +1,22 @@
+{
+    "id": "remove_pv_max_power_limit",
+    "title": {
+        "en": "Remove the max solar power limit",
+        "sv": "Ta bort begränsningen av solcellseffekten"
+    },
+    "titleFormatted": {
+        "en": "Remove the max solar power limit",
+        "sv": "Ta bort begränsningen av solcellseffekten"
+    },
+    "hint": {
+        "en": "Lets the solar panels produce freely again.",
+        "sv": "Låter solcellerna producera fritt igen."
+    },
+    "args": [
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=plant"
+        }
+    ]
+}

@@ -154,6 +154,52 @@ class PlantDevice extends BaseDevice {
     }
 
     /**
+     * Public method - used by flow action cards.
+     *
+     * Caps solar production, for example while the feed-in price is negative.
+     * Unlike an export limit this also curtails solar that would have charged
+     * the battery. Writing 0 stops solar production altogether.
+     */
+    async setPvMaxPower(kW) {
+        const clamped = utilFunctions.clampPower(kW);
+        return this._writePvLimit(`Set PV max power to ${clamped} kW`,
+            () => this.api.setPvMaxPowerLimit(clamped));
+    }
+
+    /**
+     * Public method - used by flow action cards.
+     *
+     * Lets solar produce freely again.
+     */
+    async removePvMaxPowerLimit() {
+        return this._writePvLimit('Removed PV max power limit',
+            () => this.api.removePvMaxPowerLimit());
+    }
+
+    async _writePvLimit(action, write) {
+        if (!this.api) {
+            throw new Error('Failed to set PV max power! Device is not connected.');
+        }
+
+        await write().catch(reason => {
+            this.error('Failed to set PV max power!', reason);
+            throw new Error(`Failed to set PV max power! ${utilFunctions.formatError(reason)}`);
+        });
+
+        let readback;
+        try {
+            const value = await this.api.readPvMaxPowerLimit();
+            readback = value === null ? 'not set' : `${value} kW`;
+        } catch (error) {
+            readback = `failed: ${utilFunctions.formatError(error)}`;
+        }
+        this.logMessage(`${action} (readback ${readback},`
+            + ` PV power: ${this.getCapabilityValue('measure_power.solar') ?? 'unknown'} W,`
+            + ` EMS work mode: ${this.getCapabilityValue('ems_work_mode') ?? 'unknown'})`);
+        return true;
+    }
+
+    /**
      * Some firmware accepts the limit write but does not enforce it in AI mode.
      * Logging what the plant stored next to the EMS work mode lets a diagnostic
      * report tell "stored but ignored" apart from "never stored". A failed
@@ -219,7 +265,7 @@ class PlantDevice extends BaseDevice {
      * Public method - used by flow action cards.
      *
      * Stops the battery discharging without leaving AI mode, by raising the
-     * discharge cut-off SOC (40048) to just below the current SoC. The ESS
+     * discharge cut-off SOC (40048) to 0.2 % below the current SoC. The ESS
      * discharge limit (40034) is ignored in AI mode, but the cut-off is not.
      * The cut-off that applied before the first hold is saved and restored by
      * releaseBatteryHold; holding again while held keeps that saved value.
@@ -254,6 +300,21 @@ class PlantDevice extends BaseDevice {
     }
 
     /**
+     * Public method - used by flow condition cards.
+     */
+    isBatteryHeld() {
+        return Number.isFinite(this.getStoreValue(STORE_HOLD_CUTOFF));
+    }
+
+    /**
+     * Public method - used by flow condition cards. The card passes the
+     * register value (30003) as a string; the capability holds its decoded name.
+     */
+    isEmsWorkMode(mode) {
+        return this.getCapabilityValue('ems_work_mode') === enums.decodeEmsWorkMode(Number(mode));
+    }
+
+    /**
      * Public method - used by flow action cards.
      *
      * Restores the discharge cut-off SOC saved by holdBatteryLevel. Does
@@ -282,6 +343,54 @@ class PlantDevice extends BaseDevice {
         this._holdWarnedAt = undefined;
         this.logMessage(`Released battery hold: discharge cut-off SOC restored to ${cutoffBeforeHold}%`
             + ` (${await this._describeDischargeCutoffReadback()})`);
+        return true;
+    }
+
+    /**
+     * Public method - used by flow action cards.
+     *
+     * Sets the charge kept in reserve for a power outage. It does not stop the
+     * battery discharging in AI mode; holdBatteryLevel does that.
+     */
+    async setBackupSoc(percent) {
+        return this._writeSocSetting('backup SOC',
+            utilFunctions.clampPercent(percent),
+            value => this.api.setBackupSoc(value),
+            () => this.api.readBackupSoc());
+    }
+
+    /**
+     * Public method - used by flow action cards.
+     *
+     * Sets the level the battery stops charging at, for example 80 % to spare
+     * the battery in summer.
+     */
+    async setChargeCutoffSoc(percent) {
+        return this._writeSocSetting('charge cut-off SOC',
+            utilFunctions.clampPercent(percent),
+            value => this.api.setChargeCutoffSoc(value),
+            () => this.api.readChargeCutoffSoc());
+    }
+
+    async _writeSocSetting(label, percent, write, read) {
+        if (!this.api) {
+            throw new Error(`Failed to set ${label}! Device is not connected.`);
+        }
+
+        await write(percent).catch(reason => {
+            this.error(`Failed to set ${label}!`, reason);
+            throw new Error(`Failed to set ${label}! ${utilFunctions.formatError(reason)}`);
+        });
+
+        let readback;
+        try {
+            readback = `${await read()}%`;
+        } catch (error) {
+            readback = `failed: ${utilFunctions.formatError(error)}`;
+        }
+        this.logMessage(`Set ${label} to ${percent}% (readback ${readback},`
+            + ` SoC: ${this.getCapabilityValue('measure_battery') ?? 'unknown'}%,`
+            + ` EMS work mode: ${this.getCapabilityValue('ems_work_mode') ?? 'unknown'})`);
         return true;
     }
 
@@ -325,13 +434,10 @@ class PlantDevice extends BaseDevice {
     }
 
     /**
-     * While a hold is active, solar can still charge the battery. Raise the
-     * cut-off along with the SoC so that charge is held too, rather than
-     * discharged back down to the level the hold started at. If the SoC falls
-     * more than one percent below the cut-off (standby drain or the battery
-     * correcting its SoC estimate), lower the cut-off to the SoC, so the plant
-     * does not charge from the grid to get back up to it. A steady SoC causes
-     * no writes.
+     * While a hold is active, move the cut-off with the SoC as decided by
+     * utilFunctions.followHoldCutoff: up as solar charges the battery, and
+     * down if the SoC falls clearly below it, so the plant never charges from
+     * the grid to reach the hold.
      */
     async _followBatteryHold(soc, batteryPower) {
         const holdCutoff = this.getStoreValue(STORE_HOLD_CUTOFF);
@@ -341,16 +447,12 @@ class PlantDevice extends BaseDevice {
 
         this._checkHoldDischarge(soc, batteryPower, holdCutoff);
 
-        const cutoff = utilFunctions.holdCutoffSoc(soc, this.getStoreValue(STORE_CUTOFF_BEFORE_HOLD));
-        if (cutoff === undefined || cutoff === holdCutoff) {
+        const cutoff = utilFunctions.followHoldCutoff(soc, holdCutoff, this.getStoreValue(STORE_CUTOFF_BEFORE_HOLD));
+        if (cutoff === undefined) {
             return;
         }
 
         const raise = cutoff > holdCutoff;
-        if (!raise && soc >= holdCutoff - 1) {
-            return;
-        }
-
         this._adjustingHold = true;
         try {
             await this.api.setDischargeCutoffSoc(cutoff);

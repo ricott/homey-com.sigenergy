@@ -1,0 +1,35 @@
+{
+    "id": "set_backup_soc",
+    "title": {
+        "en": "Set backup SOC",
+        "sv": "Sätt reserv-SOC"
+    },
+    "titleFormatted": {
+        "en": "Set backup SOC to [[percent]] %",
+        "sv": "Sätt reserv-SOC till [[percent]] %"
+    },
+    "hint": {
+        "en": "Sets how much charge the battery keeps in reserve for a power outage, for example before a storm. In AI mode it does not stop the battery discharging - use 'Hold the battery at its current level' for that.",
+        "sv": "Sätter hur mycket laddning batteriet håller i reserv vid strömavbrott, till exempel inför en storm. I AI-läge stoppar den inte urladdning av batteriet - använd 'Håll batteriet på nuvarande nivå' för det."
+    },
+    "args": [
+        {
+            "name": "percent",
+            "type": "range",
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "label": "%",
+            "labelDecimals": 0,
+            "title": {
+                "en": "Backup SOC (%)",
+                "sv": "Reserv-SOC (%)"
+            }
+        },
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=plant"
+        }
+    ]
+}

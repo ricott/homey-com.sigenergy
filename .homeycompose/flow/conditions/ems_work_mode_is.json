@@ -1,0 +1,34 @@
+{
+    "id": "ems_work_mode_is",
+    "title": {
+        "en": "EMS mode !{{is|is not}}",
+        "sv": "EMS-läget !{{är|är inte}}"
+    },
+    "titleFormatted": {
+        "en": "EMS mode !{{is|is not}} [[mode]]",
+        "sv": "EMS-läget !{{är|är inte}} [[mode]]"
+    },
+    "args": [
+        {
+            "name": "mode",
+            "type": "dropdown",
+            "title": {
+                "en": "Mode",
+                "sv": "Läge"
+            },
+            "values": [
+                { "id": "1", "title": { "en": "AI mode", "sv": "AI-läge" } },
+                { "id": "0", "title": { "en": "Max self consumption", "sv": "Max egenförbrukning" } },
+                { "id": "2", "title": { "en": "TOU", "sv": "TOU" } },
+                { "id": "5", "title": { "en": "Full feed-in to grid", "sv": "Full export till nätet" } },
+                { "id": "7", "title": { "en": "Remote EMS", "sv": "Fjärrstyrd EMS" } },
+                { "id": "9", "title": { "en": "Custom", "sv": "Anpassat" } }
+            ]
+        },
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=plant"
+        }
+    ]
+}

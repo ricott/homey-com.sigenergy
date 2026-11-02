@@ -60,6 +60,42 @@ class PlantDriver extends BaseDriver {
                 return await args.device.releaseBatteryHold();
             });
 
+        // Action: Cap solar production (0 = no solar)
+        this.homey.flow.getActionCard('set_pv_max_power')
+            .registerRunListener(async (args) => {
+                return await args.device.setPvMaxPower(args.power);
+            });
+
+        // Action: Undo set_pv_max_power
+        this.homey.flow.getActionCard('remove_pv_max_power_limit')
+            .registerRunListener(async (args) => {
+                return await args.device.removePvMaxPowerLimit();
+            });
+
+        // Action: Set the charge kept in reserve for a power outage
+        this.homey.flow.getActionCard('set_backup_soc')
+            .registerRunListener(async (args) => {
+                return await args.device.setBackupSoc(args.percent);
+            });
+
+        // Action: Set the level the battery stops charging at
+        this.homey.flow.getActionCard('set_charge_cutoff_soc')
+            .registerRunListener(async (args) => {
+                return await args.device.setChargeCutoffSoc(args.percent);
+            });
+
+        // Condition: Is a battery hold active
+        this.homey.flow.getConditionCard('battery_is_held')
+            .registerRunListener(async (args) => {
+                return args.device.isBatteryHeld();
+            });
+
+        // Condition: Is the plant running a given EMS work mode
+        this.homey.flow.getConditionCard('ems_work_mode_is')
+            .registerRunListener(async (args) => {
+                return args.device.isEmsWorkMode(args.mode);
+            });
+
         // Action: Charge the battery from the grid at a given rate
         this.homey.flow.getActionCard('force_charge_from_grid')
             .registerRunListener(async (args) => {

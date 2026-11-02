@@ -54,22 +54,49 @@ test('formatError never yields "[object Object]" for primitives / nullish', () =
     assert.equal(util.formatError({}), 'Unknown error');
 });
 
-test('holdCutoffSoc holds at the current SoC rounded down', () => {
-    assert.equal(util.holdCutoffSoc(65.7, 5), 65);
-    assert.equal(util.holdCutoffSoc(64.9, 5), 64);
-    assert.equal(util.holdCutoffSoc(80, 5), 80);
+test('holdCutoffSoc holds 0.2 % below the current SoC', () => {
+    assert.equal(util.holdCutoffSoc(65.7, 5), 65.5);
+    assert.equal(util.holdCutoffSoc(64.3, 5), 64.1);
+    assert.equal(util.holdCutoffSoc(80, 5), 79.8);
 });
 
 test('holdCutoffSoc never goes below the cut-off that applied before the hold', () => {
     // Near the bottom the original cut-off already stops discharge.
-    assert.equal(util.holdCutoffSoc(5.5, 5), 5);
+    assert.equal(util.holdCutoffSoc(5.1, 5), 5);
     assert.equal(util.holdCutoffSoc(3, 5), 5);
     // Without a known original, the floor is 0.
-    assert.equal(util.holdCutoffSoc(0.5, undefined), 0);
-    assert.equal(util.holdCutoffSoc(100, 5), 100);
+    assert.equal(util.holdCutoffSoc(0.1, undefined), 0);
+    assert.equal(util.holdCutoffSoc(100, 5), 99.8);
 });
 
 test('holdCutoffSoc returns undefined when the SoC is unknown', () => {
     assert.equal(util.holdCutoffSoc(undefined, 5), undefined);
     assert.equal(util.holdCutoffSoc(NaN, 5), undefined);
+});
+
+test('followHoldCutoff raises the hold once the SoC has risen half a percent', () => {
+    assert.equal(util.followHoldCutoff(64.5, 64.1, 5), undefined);
+    assert.equal(util.followHoldCutoff(64.8, 64.1, 5), 64.6);
+});
+
+test('followHoldCutoff lowers the hold only when the SoC falls clearly below it', () => {
+    // Settling at or just under the cut-off is normal: no write.
+    assert.equal(util.followHoldCutoff(64.1, 64.1, 5), undefined);
+    assert.equal(util.followHoldCutoff(63.7, 64.1, 5), undefined);
+    assert.equal(util.followHoldCutoff(63.5, 64.1, 5), 63.3);
+    // Never below the cut-off that applied before the hold.
+    assert.equal(util.followHoldCutoff(4, 5, 5), undefined);
+});
+
+test('followHoldCutoff leaves the hold alone when the SoC is unknown', () => {
+    assert.equal(util.followHoldCutoff(undefined, 64.1, 5), undefined);
+    assert.equal(util.followHoldCutoff(64.1, undefined, 5), undefined);
+});
+
+test('clampPercent keeps a SOC setting within 0-100 % at 0.1 % resolution', () => {
+    assert.equal(util.clampPercent(80), 80);
+    assert.equal(util.clampPercent(80.04), 80);
+    assert.equal(util.clampPercent(150), 100);
+    assert.equal(util.clampPercent(-5), 0);
+    assert.equal(util.clampPercent('abc'), 0);
 });

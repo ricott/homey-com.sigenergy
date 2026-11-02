@@ -28,6 +28,24 @@ test('readEssLimit reads 40034 for discharging and 40032 for charging, in kW', a
     assert.deepEqual(charging.calls, [[40032, 2]]);
 });
 
+test('readPvMaxPowerLimit reads 40036 in kW and reports the sentinel as null', async () => {
+    const limited = fakeApi(3500);
+    assert.equal(await Plant.prototype.readPvMaxPowerLimit.call(limited), 3.5);
+    assert.deepEqual(limited.calls, [[40036, 2]]);
+
+    assert.equal(await Plant.prototype.readPvMaxPowerLimit.call(fakeApi(0xFFFFFFFF)), null);
+});
+
+test('removePvMaxPowerLimit writes the 0xFFFFFFFF "no limit set" sentinel to 40036', async () => {
+    const writes = [];
+    await Plant.prototype.removePvMaxPowerLimit.call({
+        async writeRegisters(registryId, buffer) {
+            writes.push([registryId, buffer.readUInt32BE(0)]);
+        }
+    });
+    assert.deepEqual(writes, [[40036, 0xFFFFFFFF]]);
+});
+
 test('readEssLimit reports the 0xFFFFFFFF "no limit set" sentinel as null', async () => {
     assert.equal(await Plant.prototype.readEssLimit.call(fakeApi(0xFFFFFFFF), 'discharging'), null);
 });

@@ -1,0 +1,22 @@
+{
+    "id": "battery_is_held",
+    "title": {
+        "en": "Battery is !{{held|not held}}",
+        "sv": "Batteriet !{{är|är inte}} låst"
+    },
+    "titleFormatted": {
+        "en": "Battery is !{{held|not held}}",
+        "sv": "Batteriet !{{är|är inte}} låst"
+    },
+    "hint": {
+        "en": "True while 'Hold the battery at its current level' is active, until 'Release the battery hold' runs.",
+        "sv": "Sant medan 'Håll batteriet på nuvarande nivå' är aktiv, tills 'Släpp batterilåsningen' körs."
+    },
+    "args": [
+        {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=plant"
+        }
+    ]
+}
