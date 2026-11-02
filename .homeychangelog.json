@@ -110,5 +110,9 @@
   "0.7.1": {
     "en": "Hold the battery now stops discharge sooner: the cut-off is set to the current level instead of one percent below. If the battery level drops while held, the hold follows it down so the system does not charge from the grid. More detail in the log to help troubleshoot the hold.",
     "sv": "Håll batteriet stoppar nu urladdningen tidigare: gränsen sätts till nuvarande nivå i stället för en procent under. Om batterinivån sjunker under låsningen följer gränsen med nedåt så att systemet inte laddar från elnätet. Mer information i loggen för felsökning av låsningen."
+  },
+  "0.8.0": {
+    "en": "New flow cards on the Plant device: limit solar power (for example at negative feed-in prices), set backup SOC, set charge cut-off SOC, and conditions for 'battery is held' and 'EMS mode is'. Hold the battery now stops discharge within a minute or two instead of after a percent or more.",
+    "sv": "Nya flödeskort på Plant-enheten: begränsa solcellseffekten (till exempel vid negativt elpris), sätt reserv-SOC, sätt laddgräns (SOC), samt villkor för 'batteriet är låst' och 'EMS-läget är'. Håll batteriet stoppar nu urladdningen inom en minut eller två i stället för efter en procent eller mer."
   }
 }
