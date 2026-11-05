@@ -13,7 +13,7 @@
         "setup_step1": "<strong>Aktivera Modbus TCP:</strong> Modbus TCP är inaktiverat som standard på Sigenergy enheter. Du måste aktivera det manuellt",
         "setup_step2": "<strong>Hitta IP adressen:</strong> IP adressen för din Sigenergy enhet finns i Sigenergy appen, under fliken System / Systeminställningar / Anslutningar / Enhetsfliken / Ethernet eller WLAN",
         "setup_step3": "<strong>Modbus nativ adress:</strong> Ett värde mellan 1 och 246. Normalt är värdet 1, förutsatt att du har en Sigenergy enhet.",
-        "setup_step2_fixed247": "<strong>Modbus nativ adress:</strong> Ändra inte detta värde, det måste vara 247",
+        "setup_step3_fixed247": "<strong>Modbus nativ adress:</strong> Ändra inte detta värde, det måste vara 247",
         "setup_step4": "<strong>Nätverksåtkomst:</strong> Se till att din Homey kan nå Sigenergy enheten på den angivna IP-adressen och porten (standard: 502)."
     },
     "widget": {
