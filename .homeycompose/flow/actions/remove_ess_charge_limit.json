@@ -9,8 +9,8 @@
         "sv": "Ta bort begränsningen av batteriets laddeffekt"
     },
     "hint": {
-        "en": "Lets the battery charge freely again by setting the limit to the system's rated charging power, shown under device settings. The battery is then no longer constrained, since it cannot exceed its rated power anyway.",
-        "sv": "Låter batteriet laddas fritt igen genom att sätta gränsen till systemets märkeffekt för laddning, som visas under enhetens inställningar. Batteriet begränsas då inte längre, eftersom det ändå inte kan överstiga sin märkeffekt."
+        "en": "Lets the battery charge freely again.",
+        "sv": "Låter batteriet laddas fritt igen."
     },
     "args": [
         {

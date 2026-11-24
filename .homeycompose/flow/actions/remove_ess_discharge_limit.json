@@ -9,8 +9,8 @@
         "sv": "Ta bort begränsningen av batteriets urladdeffekt"
     },
     "hint": {
-        "en": "Lets the battery discharge freely again by setting the limit to the system's rated discharging power, shown under device settings. The battery is then no longer constrained, since it cannot exceed its rated power anyway.",
-        "sv": "Låter batteriet laddas ur fritt igen genom att sätta gränsen till systemets märkeffekt för urladdning, som visas under enhetens inställningar. Batteriet begränsas då inte längre, eftersom det ändå inte kan överstiga sin märkeffekt."
+        "en": "Lets the battery discharge freely again.",
+        "sv": "Låter batteriet laddas ur fritt igen."
     },
     "args": [
         {

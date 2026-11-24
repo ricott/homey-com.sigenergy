@@ -9,8 +9,8 @@
         "sv": "Sätt max urladdeffekt för batteriet till [[power]] kW"
     },
     "hint": {
-        "en": "Caps how much power the battery may supply. Set 0 to stop it discharging completely, for example while the car is charging. Applies to the whole system. Some firmware ignores this limit in AI mode - if the battery keeps discharging, use remote EMS Standby instead.",
-        "sv": "Begränsar hur mycket effekt batteriet får leverera. Sätt 0 för att helt stoppa urladdning, till exempel medan bilen laddar. Gäller hela systemet. Viss firmware ignorerar gränsen i AI-läge - om batteriet fortsätter laddas ur, använd Standby i fjärrstyrd EMS i stället."
+        "en": "Caps how much power the battery may supply. Set 0 to stop it discharging completely, for example while the car is charging. Applies to the whole system and in every EMS mode, including AI mode. Use 'Remove the max battery discharge power limit' afterwards.",
+        "sv": "Begränsar hur mycket effekt batteriet får leverera. Sätt 0 för att helt stoppa urladdning, till exempel medan bilen laddar. Gäller hela systemet och i alla EMS-lägen, även AI-läget. Använd 'Ta bort begränsningen av batteriets urladdeffekt' efteråt."
     },
     "args": [
         {

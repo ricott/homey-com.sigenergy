@@ -9,8 +9,8 @@
         "sv": "Tvångsladda batteriet från nätet med [[power]] kW"
     },
     "hint": {
-        "en": "Turns remote EMS on in 'Charge, grid first' mode and sets the max battery charge power to the given value. When done, turn remote EMS off and remove the max battery charge power limit.",
-        "sv": "Slår på fjärrstyrd EMS i läget 'Ladda, nätet först' och sätter batteriets max laddeffekt till angivet värde. När du är klar, slå av fjärrstyrd EMS och ta bort begränsningen av batteriets laddeffekt."
+        "en": "Turns remote EMS on in 'Charge, grid first' mode and sets the max battery charge power to the given value. When done, turn remote EMS off: that also removes the charge power limit set by this card.",
+        "sv": "Slår på fjärrstyrd EMS i läget 'Ladda, nätet först' och sätter batteriets max laddeffekt till angivet värde. När du är klar, slå av fjärrstyrd EMS: då tas även begränsningen av laddeffekten som det här kortet satte bort."
     },
     "args": [
         {

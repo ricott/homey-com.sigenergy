@@ -22,6 +22,15 @@ const STORE_HOLD_CUTOFF = 'discharge_cutoff_hold';
 const HOLD_DISCHARGE_WARNING_INTERVAL_MS = 5 * 60 * 1000;
 const HOLD_DISCHARGE_WARNING_W = 100;
 
+// Set while the ESS charging limit (40032) is the one forceChargeFromGrid
+// wrote, so turning remote EMS off can remove it again.
+const STORE_FORCE_CHARGE_LIMIT = 'force_charge_limit_active';
+
+function formatLimits({ charging, discharging, pv }) {
+    const format = value => (value === null ? 'not set' : `${value} kW`);
+    return `charge ${format(charging)}, discharge ${format(discharging)}, solar ${format(pv)}`;
+}
+
 class PlantDevice extends BaseDevice {
 
     async onInit() {
@@ -87,7 +96,10 @@ class PlantDevice extends BaseDevice {
      */
     async setEssMaxChargePower(kW) {
         const clamped = utilFunctions.clampPower(kW, this._getRatedPower('charging'));
-        return this._writeEssLimit('charging', clamped);
+        await this._writeEssLimit('charging', clamped);
+        // The limit now belongs to the user, not to force charge.
+        await this.unsetStoreValue(STORE_FORCE_CHARGE_LIMIT);
+        return true;
     }
 
     /**
@@ -105,34 +117,22 @@ class PlantDevice extends BaseDevice {
     /**
      * Public method - used by flow action cards.
      *
-     * Restores unrestricted charging by writing the plant's rated charging
-     * power, which is the top of the register's documented range.
+     * Restores unrestricted charging. Also forgets a limit left behind by
+     * forceChargeFromGrid, since it is now gone.
      */
     async removeEssChargeLimit() {
-        return this._writeEssLimit('charging', this._requireRatedPower('charging'));
+        await this._removeEssLimit('charging');
+        await this.unsetStoreValue(STORE_FORCE_CHARGE_LIMIT);
+        return true;
     }
 
     /**
      * Public method - used by flow action cards.
      *
-     * Restores unrestricted discharging by writing the plant's rated
-     * discharging power.
+     * Restores unrestricted discharging.
      */
     async removeEssDischargeLimit() {
-        return this._writeEssLimit('discharging', this._requireRatedPower('discharging'));
-    }
-
-    /**
-     * The rated power registers define the upper bound of the limit registers,
-     * so removing a limit is only meaningful once they have been read. Fail
-     * loudly rather than guessing a value the plant may reject.
-     */
-    _requireRatedPower(label) {
-        const rated = this._getRatedPower(label);
-        if (rated === undefined) {
-            throw new Error(`Cannot remove the battery ${label} limit: the plant's rated ${label} power is not known yet. Wait for the device to report it, or set an explicit power limit instead.`);
-        }
-        return rated;
+        return this._removeEssLimit('discharging');
     }
 
     async _writeEssLimit(label, kW) {
@@ -150,7 +150,94 @@ class PlantDevice extends BaseDevice {
         });
 
         this.logMessage(`Set ESS max ${label} power to ${kW} kW (${await this._describeEssLimitReadback(label)})`);
+        await this._enforceLimitsInAllModes();
         return true;
+    }
+
+    async _removeEssLimit(label) {
+        if (!this.api) {
+            throw new Error(`Failed to remove the battery ${label} limit! Device is not connected.`);
+        }
+
+        await this.api.removeEssLimit(label).catch(reason => {
+            this.error(`Failed to remove the battery ${label} limit!`, reason);
+            throw new Error(`Failed to remove the battery ${label} limit! ${utilFunctions.formatError(reason)}`);
+        });
+
+        this.logMessage(`Removed ESS max ${label} power limit (${await this._describeEssLimitReadback(label)})`);
+        await this._releaseLimitEnforcementIfUnused();
+        return true;
+    }
+
+    /**
+     * The ESS and PV limits only apply outside remote EMS while 40162 is 1
+     * (protocol V2.10), so turn it on whenever a limit is set. Turning it on
+     * also revives any other limit still stored on the plant, so those are
+     * logged. Older firmware without 40162 applied the limits by the V2.9
+     * rules; there the write is skipped. Never fails the card: the limit
+     * itself was written.
+     */
+    async _enforceLimitsInAllModes() {
+        try {
+            if (await this.api.readLimitGlobalEnable() === 1) {
+                return;
+            }
+        } catch (error) {
+            this.logMessage(`Power limit global enable (40162) not available, limits follow the firmware's own rules: ${utilFunctions.formatError(error)}`);
+            return;
+        }
+
+        try {
+            await this.api.setLimitGlobalEnable(true);
+            this.logMessage(`Enabled power limits in all EMS modes (40162 = 1). Stored limits: ${await this._describeStoredLimits()}`);
+        } catch (error) {
+            this.error('Failed to enable power limits in all EMS modes (40162)!', error);
+        }
+    }
+
+    /**
+     * Turn 40162 back off once no ESS or PV limit constrains anything, so the
+     * plant is left as it was before the app set a limit. Never fails the
+     * card: the limit itself was removed.
+     */
+    async _releaseLimitEnforcementIfUnused() {
+        try {
+            const limits = await this._readStoredLimits();
+            const active = [
+                utilFunctions.isPowerLimitActive(limits.charging, this._getRatedPower('charging')),
+                utilFunctions.isPowerLimitActive(limits.discharging, this._getRatedPower('discharging')),
+                utilFunctions.isPowerLimitActive(limits.pv)
+            ];
+            if (active.some(Boolean)) {
+                this.logMessage(`Keeping power limits enabled in all EMS modes. Stored limits: ${formatLimits(limits)}`);
+                return;
+            }
+
+            if (await this.api.readLimitGlobalEnable() !== 1) {
+                return;
+            }
+            await this.api.setLimitGlobalEnable(false);
+            this.logMessage('No power limits left, disabled power limits in all EMS modes (40162 = 0)');
+        } catch (error) {
+            this.logMessage(`Could not release power limit global enable (40162): ${utilFunctions.formatError(error)}`);
+        }
+    }
+
+    async _readStoredLimits() {
+        const [charging, discharging, pv] = await Promise.all([
+            this.api.readEssLimit('charging'),
+            this.api.readEssLimit('discharging'),
+            this.api.readPvMaxPowerLimit()
+        ]);
+        return { charging, discharging, pv };
+    }
+
+    async _describeStoredLimits() {
+        try {
+            return formatLimits(await this._readStoredLimits());
+        } catch (error) {
+            return `readback failed: ${utilFunctions.formatError(error)}`;
+        }
     }
 
     /**
@@ -162,8 +249,10 @@ class PlantDevice extends BaseDevice {
      */
     async setPvMaxPower(kW) {
         const clamped = utilFunctions.clampPower(kW);
-        return this._writePvLimit(`Set PV max power to ${clamped} kW`,
+        await this._writePvLimit(`Set PV max power to ${clamped} kW`,
             () => this.api.setPvMaxPowerLimit(clamped));
+        await this._enforceLimitsInAllModes();
+        return true;
     }
 
     /**
@@ -172,8 +261,10 @@ class PlantDevice extends BaseDevice {
      * Lets solar produce freely again.
      */
     async removePvMaxPowerLimit() {
-        return this._writePvLimit('Removed PV max power limit',
+        await this._writePvLimit('Removed PV max power limit',
             () => this.api.removePvMaxPowerLimit());
+        await this._releaseLimitEnforcementIfUnused();
+        return true;
     }
 
     async _writePvLimit(action, write) {
@@ -200,9 +291,8 @@ class PlantDevice extends BaseDevice {
     }
 
     /**
-     * Some firmware accepts the limit write but does not enforce it in AI mode.
      * Logging what the plant stored next to the EMS work mode lets a diagnostic
-     * report tell "stored but ignored" apart from "never stored". A failed
+     * report tell "stored but not enforced" apart from "never stored". A failed
      * readback is only reported, since the write itself succeeded.
      */
     async _describeEssLimitReadback(label) {
@@ -228,6 +318,18 @@ class PlantDevice extends BaseDevice {
     async setRemoteEms(enabled) {
         await this._writeRemoteEms(`${enabled ? 'enable' : 'disable'} remote EMS`,
             () => this.api.setRemoteEmsEnabled(enabled));
+
+        // A charge limit set by forceChargeFromGrid would otherwise keep
+        // capping charging after remote EMS ends, since limits are enforced
+        // in every mode while 40162 is on. A limit the user set themselves
+        // (with the charge power card) is left alone.
+        if (!enabled && this.getStoreValue(STORE_FORCE_CHARGE_LIMIT)) {
+            try {
+                await this.removeEssChargeLimit();
+            } catch (error) {
+                this.error('Failed to remove the charge limit left by force charge!', error);
+            }
+        }
         return true;
     }
 
@@ -253,11 +355,12 @@ class PlantDevice extends BaseDevice {
      * Public method - used by flow action cards.
      *
      * Charges the battery from the grid at up to kW. The rate is bounded by the
-     * ESS max charging limit (40032), which stays in place afterwards until it
-     * is removed or changed.
+     * ESS max charging limit (40032). The limit is remembered as set by force
+     * charge, so turning remote EMS off removes it again.
      */
     async forceChargeFromGrid(kW) {
         await this.setEssMaxChargePower(kW);
+        await this.setStoreValue(STORE_FORCE_CHARGE_LIMIT, true);
         return this.setRemoteEmsControlMode(enums.REMOTE_EMS_MODE_CHARGE_GRID_FIRST);
     }
 
@@ -266,7 +369,8 @@ class PlantDevice extends BaseDevice {
      *
      * Stops the battery discharging without leaving AI mode, by raising the
      * discharge cut-off SOC (40048) to 0.2 % below the current SoC. The ESS
-     * discharge limit (40034) is ignored in AI mode, but the cut-off is not.
+     * discharge limit (40034) only applies in AI mode while 40162 is on; the
+     * cut-off always does, and leaves the discharge limit free for the user.
      * The cut-off that applied before the first hold is saved and restored by
      * releaseBatteryHold; holding again while held keeps that saved value.
      */

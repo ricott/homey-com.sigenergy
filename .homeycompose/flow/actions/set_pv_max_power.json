@@ -9,8 +9,8 @@
         "sv": "Sätt max solcellseffekt till [[power]] kW"
     },
     "hint": {
-        "en": "Caps how much power the solar panels may produce, for example while the feed-in price is negative. Works in every EMS mode, including AI mode. Unlike a grid export limit it also reduces solar charging of the battery. Set 0 to stop solar production completely. Use 'Remove the max solar power limit' afterwards.",
-        "sv": "Begränsar hur mycket effekt solcellerna får producera, till exempel när ersättningen för såld el är negativ. Fungerar i alla EMS-lägen, även AI-läget. Till skillnad från en exportgräns minskar den även solcellsladdningen av batteriet. Sätt 0 för att helt stoppa solcellsproduktionen. Använd 'Ta bort begränsningen av solcellseffekten' efteråt."
+        "en": "Caps how much power the solar panels may produce, for example while the feed-in price is negative. Applies in every EMS mode, including AI mode. Unlike a grid export limit it also reduces solar charging of the battery. Set 0 to stop solar production completely. Use 'Remove the max solar power limit' afterwards.",
+        "sv": "Begränsar hur mycket effekt solcellerna får producera, till exempel när ersättningen för såld el är negativ. Gäller i alla EMS-lägen, även AI-läget. Till skillnad från en exportgräns minskar den även solcellsladdningen av batteriet. Sätt 0 för att helt stoppa solcellsproduktionen. Använd 'Ta bort begränsningen av solcellseffekten' efteråt."
     },
     "args": [
         {

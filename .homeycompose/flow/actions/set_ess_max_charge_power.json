@@ -9,8 +9,8 @@
         "sv": "Sätt max laddeffekt för batteriet till [[power]] kW"
     },
     "hint": {
-        "en": "Caps how much power the battery may draw. Set 0 to stop it charging completely, for example to send surplus solar to the grid instead. Applies to the whole system. Some firmware ignores these limits in AI mode.",
-        "sv": "Begränsar hur mycket effekt batteriet får ta emot. Sätt 0 för att helt stoppa laddning, till exempel för att skicka solöverskottet till nätet i stället. Gäller hela systemet. Viss firmware ignorerar gränserna i AI-läge."
+        "en": "Caps how much power the battery may draw. Set 0 to stop it charging completely, for example to send surplus solar to the grid instead. Applies to the whole system and in every EMS mode, including AI mode. Use 'Remove the max battery charge power limit' afterwards.",
+        "sv": "Begränsar hur mycket effekt batteriet får ta emot. Sätt 0 för att helt stoppa laddning, till exempel för att skicka solöverskottet till nätet i stället. Gäller hela systemet och i alla EMS-lägen, även AI-läget. Använd 'Ta bort begränsningen av batteriets laddeffekt' efteråt."
     },
     "args": [
         {

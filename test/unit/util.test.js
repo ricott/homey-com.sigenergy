@@ -100,3 +100,14 @@ test('clampPercent keeps a SOC setting within 0-100 % at 0.1 % resolution', () =
     assert.equal(util.clampPercent(-5), 0);
     assert.equal(util.clampPercent('abc'), 0);
 });
+
+test('isPowerLimitActive treats unset and rated-or-above limits as inactive', () => {
+    assert.equal(util.isPowerLimitActive(null, 14.4), false);
+    assert.equal(util.isPowerLimitActive(undefined), false);
+    assert.equal(util.isPowerLimitActive(14.4, 14.4), false);
+    assert.equal(util.isPowerLimitActive(20, 14.4), false);
+    assert.equal(util.isPowerLimitActive(0.5, 14.4), true);
+    assert.equal(util.isPowerLimitActive(0, 14.4), true);
+    // No rated power known (e.g. the PV limit): any set value limits.
+    assert.equal(util.isPowerLimitActive(30, undefined), true);
+});
