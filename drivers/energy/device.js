@@ -16,6 +16,17 @@ class EnergyDevice extends BaseDevice {
         await this.addCapabilityHelper('grid_status');
         await this.addCapabilityHelper('grid_sensor_status');
         await this.addCapabilityHelper('phase_control');
+        for (const phase of ['L1', 'L2', 'L3']) {
+            await this.addCapabilityHelper(`measure_voltage.${phase}`);
+            await this.addCapabilityHelper(`measure_current.${phase}`);
+        }
+
+        // Left over from an earlier app version that showed the grid
+        // export/import limits (40038/40040) as power readings. With no limit
+        // set those registers hold 0xFFFFFFFF, so the device displayed
+        // 4294967295 W. Nothing writes these capabilities any more.
+        await this.removeCapabilityHelper('measure_power.export_limitation');
+        await this.removeCapabilityHelper('measure_power.import_limitation');
     }
 
     createApi(options) {
@@ -82,12 +93,18 @@ class EnergyDevice extends BaseDevice {
 
             // Phase L1 measurements
             this._updateProperty('measure_power.L1', message.powerL1),
+            this._updateProperty('measure_voltage.L1', message.voltageL1),
+            this._updateProperty('measure_current.L1', message.currentL1),
 
             // Phase L2 measurements
             this._updateProperty('measure_power.L2', message.powerL2),
+            this._updateProperty('measure_voltage.L2', message.voltageL2),
+            this._updateProperty('measure_current.L2', message.currentL2),
 
             // Phase L3 measurements
             this._updateProperty('measure_power.L3', message.powerL3),
+            this._updateProperty('measure_voltage.L3', message.voltageL3),
+            this._updateProperty('measure_current.L3', message.currentL3),
 
             // Energy meters
             this._updateProperty('meter_power.imported', message.totalImportedEnergy),

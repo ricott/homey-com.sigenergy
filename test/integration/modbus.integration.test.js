@@ -7,7 +7,7 @@
 //
 // They auto-skip when the target is unreachable, so they are safe to run
 // anywhere. Configure the target with env vars (defaults shown):
-//   SIGEN_HOST=192.168.200.66  SIGEN_PORT=502  SIGEN_UNIT=1  SIGEN_SYSTEM_UNIT=247
+//   SIGEN_HOST=192.168.20.141  SIGEN_PORT=502  SIGEN_UNIT=1  SIGEN_SYSTEM_UNIT=247
 //
 // Unit 1  = the device register space (inverter/battery/EV registers)
 // Unit 247 = the Sigenergy "system"/plant register space
@@ -37,7 +37,7 @@ const COALESCED_DEVICES = [
     { name: 'ev-dc-charger', registry: EvDCChargerRegistry, DeviceClass: EVDCCharger, probe: EvDCChargerRegistry.power }
 ];
 
-const HOST = process.env.SIGEN_HOST || '192.168.200.66';
+const HOST = process.env.SIGEN_HOST || '192.168.20.141';
 const PORT = Number(process.env.SIGEN_PORT || 502);
 const UNIT = Number(process.env.SIGEN_UNIT || 1);
 const SYSTEM_UNIT = Number(process.env.SIGEN_SYSTEM_UNIT || 247);

@@ -6,7 +6,7 @@ var net = require('net');
 let socket = new net.Socket();
 let client100 = new modbus.client.TCP(socket, 247, 5000);
 let options = {
-    host: "192.168.200.66",
+    host: "192.168.20.141",
     port: 502,
 };
 

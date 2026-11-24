@@ -14,8 +14,14 @@
         "grid_sensor_status",
         "measure_power",
         "measure_power.L1",
+        "measure_voltage.L1",
+        "measure_current.L1",
         "measure_power.L2",
+        "measure_voltage.L2",
+        "measure_current.L2",
         "measure_power.L3",
+        "measure_voltage.L3",
+        "measure_current.L3",
         "meter_power.imported",
         "meter_power.exported",
         "phase_control"
@@ -27,16 +33,52 @@
                 "sv": "L1 effekt"
             }
         },
+        "measure_voltage.L1": {
+            "title": {
+                "en": "L1 voltage",
+                "sv": "L1 spänning"
+            }
+        },
+        "measure_current.L1": {
+            "title": {
+                "en": "L1 current",
+                "sv": "L1 ström"
+            }
+        },
         "measure_power.L2": {
             "title": {
                 "en": "L2 power",
                 "sv": "L2 effekt"
             }
         },
+        "measure_voltage.L2": {
+            "title": {
+                "en": "L2 voltage",
+                "sv": "L2 spänning"
+            }
+        },
+        "measure_current.L2": {
+            "title": {
+                "en": "L2 current",
+                "sv": "L2 ström"
+            }
+        },
         "measure_power.L3": {
             "title": {
                 "en": "L3 power",
                 "sv": "L3 effekt"
+            }
+        },
+        "measure_voltage.L3": {
+            "title": {
+                "en": "L3 voltage",
+                "sv": "L3 spänning"
+            }
+        },
+        "measure_current.L3": {
+            "title": {
+                "en": "L3 current",
+                "sv": "L3 ström"
             }
         },
         "meter_power.imported": {
